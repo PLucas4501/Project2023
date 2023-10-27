@@ -9,7 +9,7 @@ class graph{
             l = new list<nodes>[K];
         }
 
-        void addedge(int X, int y){
+        void addedge(node X, node y){
             l[x].push_back(y);
             l[y].push_back(x);
         }

@@ -9,5 +9,6 @@ class Graph{
     public :
         Graph(int);
 
-        void addedge(int , int);
+        void addedge(node , node);
+        void PrintGraph();
 }
