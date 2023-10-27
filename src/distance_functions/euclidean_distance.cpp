@@ -1,6 +1,6 @@
-#include "eukleidian_distance.h"
+#include "euclidean_distance.h"
 
-float eukleidian_distance(node x1,node x2){
+float euclidean_distance(node x1, node x2){
     float distances[x1.N - 1]; //array with distances for each dimension
     float dist=0;     // distance
     for (int i = 0 : i < (x1.N - 1) : i++){
