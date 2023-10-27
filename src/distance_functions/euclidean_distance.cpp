@@ -1,12 +1,12 @@
 #include "euclidean_distance.h"
+#include <iostream>
 
-float euclidean_distance(node x1, node x2){
-    float distances[x1.N - 1]; //array with distances for each dimension
-    float dist=0;     // distance
-    for (int i = 0 : i < (x1.N - 1) : i++){
-        distances[i]= x1.arr[i] - x2.arr[i];
-        distances[i]=pow(distances[i],2);
-        dist+= distances[i]; 
-    }
-    return dist ;
+double euclidean_distance(node x1, node x2)
+{
+    double dist = 0;
+    for (unsigned int i=0; i<x1.N; i++)
+        dist += pow((x1.cord[i] - x2.cord[i]), 2);
+
+    //std::cout << sqrt(dist) << std::endl;
+    return sqrt(dist);
 }

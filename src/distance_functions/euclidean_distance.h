@@ -1,4 +1,9 @@
-#include <math.h>
-#include "node.h"
+#ifndef EUCLID_D
+#define EUCLID_D
 
-float eukleidian_distance(node,node);
+#include <cmath>
+#include "../data_structures/node.h"
+
+double euclidean_distance(node, node);
+
+#endif
