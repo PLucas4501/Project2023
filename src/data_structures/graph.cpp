@@ -1,18 +1,15 @@
 #include "graph.h"
 
 class graph{
-    int K;
-    list<node> *l; //List tha holds K nodes
+    int K;   // number of dimensions
+    node *arr; // array with nodes
 
     public:
-        graph(int K){
+        graph(node arr[],int K){
             this->K = K;
-            l = new list<nodes>[K];
-        }
-
-        void addedge(node X, node y){
-            l[x].push_back(y);
-            l[y].push_back(x);
+            for(unsigned int i = 0 ; i < K ; i++){
+                this -> arr[i] = arr[i] ;
+            }
         }
 
         void PrintGraph(){
