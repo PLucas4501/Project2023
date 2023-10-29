@@ -1,38 +1,65 @@
 #include <iostream>
-#include "data_structures/node.h"
-#include "distance_functions/euclidean_distance.h"
+#include "node.h"
+#include "distance.h"
 
 using namespace std;
 
 int main(int argc, char *argv[])
 {  
     srand(time(NULL));
-
-    bool negative;
-    node node_array[10];
-    unsigned int dim = rand()%9 + 1;
-    for(unsigned int i=0; i<10; i++)
+    unsigned int arr_size = 6, dim = 2;
+    struct node node_array[arr_size];
+    for(unsigned int i=0; i<arr_size; i++)
     {
-        node_array[i].N = dim;
-        node_array[i].cord = new double[dim];
-        cout << "Node " << i << ":" << endl;
-        for(unsigned j=0; j<dim; j++)
+        node_array[i].dim = dim;
+        node_array[i].cord = new double [2];
+        node_array[i].cord[0] = node_array[i].cord[1] = i;
+    }
+
+    struct node temp;
+    unsigned int randindex, offset, k = 2, range = (unsigned int) arr_size/k;
+    for(unsigned int i=0; i<arr_size; i++)
+    {
+        temp = node_array[0];
+        node_array[0] = node_array[i];
+        node_array[i] = temp;
+
+        offset = 1;
+        node_array[0].edge = new struct node *[k];
+        for(unsigned int j=0; j < k; j++)
         {
-            node_array[i].cord[j] = rand()%101;
-            node_array[i].cord[j] += (float)(1000000000)/rand();
-            negative = rand()%2;
-            negative ? node_array[i].cord[j] = -node_array[i].cord[j] : node_array[i].cord[j] = node_array[i].cord[j];
-            cout << "\t" << node_array[i].cord[j] << endl;
+            randindex = rand()%range + offset;
+            if(j+1 == k)
+            {
+                if((arr_size - 1)%k > 0)
+                {
+                    randindex = rand()%(arr_size - offset) + offset;
+                }
+            }
+
+            offset += range;
+            if(randindex == i)
+                randindex = 0;
+            node_array[0].edge[j] = &node_array[randindex];
         }
+
+        temp = node_array[0];
+        node_array[0] = node_array[i];
+        node_array[i] = temp;
+
+        /*cout << "Node " << i << ": " << endl;
+        for(unsigned int j=0; j<k; j++)
+            cout << "\t(" << node_array[i].edge[j]->cord[0] << ", " << node_array[i].edge[j]->cord[1] << ")" << endl;
+        cout << endl;*/
+
+        
     }
 
-    double distances[9];
-    for(unsigned int i=1; i<10; i++)
-    {
-        cout << "Node " << i << ": ";
-        distances[i] = euclidean_distance(node_array[0], node_array[i]);
-        cout << distances[i] << endl;
-    }
+
+
+
+
+
 
     return 0;
 }
