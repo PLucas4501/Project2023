@@ -7,6 +7,7 @@ using namespace std;
 int main(int argc, char *argv[])
 {  
     srand(time(NULL));
+    double distance;
     unsigned int arr_size = 6, dim = 2;
     struct node node_array[arr_size];
     for(unsigned int i=0; i<arr_size; i++)
@@ -41,25 +42,45 @@ int main(int argc, char *argv[])
             if(randindex == i)
                 randindex = 0;
             node_array[0].edge[j] = &node_array[randindex];
+            distance = manhattan_distance(node_array[0], node_array[randindex]);
+            node_array[randindex].reverse_edge.insert(&node_array[i], distance);
         }
 
         temp = node_array[0];
         node_array[0] = node_array[i];
         node_array[i] = temp;
-
-        /*cout << "Node " << i << ": " << endl;
-        for(unsigned int j=0; j<k; j++)
-            cout << "\t(" << node_array[i].edge[j]->cord[0] << ", " << node_array[i].edge[j]->cord[1] << ")" << endl;
-        cout << endl;*/
-
         
     }
 
 
+    for(unsigned int i=0; i<arr_size; i++)
+    {
+        cout << "Node " << i << endl;
+        cout << "Normal neighbors:" << endl;
+        for(unsigned int j=0; j<k; j++)
+            cout << "\t(" << node_array[i].edge[j]->cord[0] << ", " << node_array[i].edge[j]->cord[1] << ")" << endl;
 
+        struct node *rn;
+        unsigned int size = node_array[i].reverse_edge.get_size();
+        cout << "Reverse neighbors (" << size << "):" << endl;
+        for(unsigned int j=0; j < size; j++)
+        {  
+            rn = (struct node *) node_array[i].reverse_edge[j];
+            cout << "\t(" << rn->cord[0] << ", " << rn->cord[1]  << ")" << endl;
+        }
+        cout << endl;
+    }
 
-
-
+    bool changed = False;
+    do
+    { //epanalipsi mexri na min exei ginei allagh mesa
+        for(unsigned int i=0; i<arr_size; i++) //gia kathe node
+        {
+            //gia kathe reverse neighbor
+                //gia kathe neighbor
+                    //vres apostash rev_neihgbor - neighbor kai valth sto heap twn neighbors tou reverse_neighbor
+        } //kane ta updates (vgale apo ola ta neighbor heap ton nodes ta perita neighbors - kopse mexri na minoun k)
+    while(changed);
 
     return 0;
 }
