@@ -1,4 +1,4 @@
-#include "quicksort.h"
+#include "../include/quicksort.h"
 
 void Swap(node & a,node & b){
     node temp = a ;
