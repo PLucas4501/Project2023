@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
         node_array[i] = temp;
 
         offset = 1;
-        node_array[0].edge = new struct node *[k];
+        node_array[0].edge = new struct node [k];
         for(unsigned int j=0; j < k; j++)
         {
             randindex = rand()%range + offset;
@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
         cout << "Node " << i << endl;
         cout << "Normal neighbors:" << endl;
         for(unsigned int j=0; j<k; j++)
-            cout << "\t(" << node_array[i].edge[j]->cord[0] << ", " << node_array[i].edge[j]->cord[1] << ")" << endl;
+            cout << "\t(" << node_array[i].edge[j].cord[0] << ", " << node_array[i].edge[j].cord[1] << ")" << endl;
 
         struct node *rn;
         unsigned int size = node_array[i].reverse_edge.get_size();
@@ -73,21 +73,23 @@ int main(int argc, char *argv[])
 
     bool changed = "False";
     do { 
-        changed = "True";
         for(unsigned int i=0; i<arr_size; i++) //gia kathe node
         {
             struct node *rn;
+            unsigned int size = node_array[i].reverse_edge.get_size();
             for(unsigned int j=0; j < size; j++)
             {  
                 
                 rn = (struct node *) node_array[i].reverse_edge[j];
-                double dist=euclidean_distance( node_array[i] , rn[j] );
-                cout << "euclidean Distance from node" << node_array[i].cord[0] << "," << node_array[1] << " to reverse node" ;
-                cout << rn.cord[0] << "," << rn.cord[1] << "is :" << dist << endl;
-                changed=rn[j].reverse_edge.heapifyMin(dist);
-                dist=manhattan_distance( node_array[i] , rn[j] );
-                cout << "And manhattan " << dist endl;
-            
+                for (unsigned int n = 0 ;  n < k ; n++  ){
+                    double dist=euclidean_distance( node_array[i].edge[n] , rn[j] );
+                    cout << "euclidean Distance from node" << node_array[i].edge[n].cord[0] << "," << node_array[i].edge[n].cord[1] << " to reverse node" ;
+                    cout << rn.cord[0] << "," << rn.cord[1] << "is :" << dist << endl;
+                    rn[j].reverse_edge.heapifyMin(dist);
+
+                    dist=manhattan_distance( node_array[i] , rn[j] );
+                    cout << "And manhattan " << dist << endl;   
+                }
             }
 
         } //kane ta updates (vgale apo ola ta neighbor heap ton nodes ta perita neighbors - kopse mexri na minoun k)

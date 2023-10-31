@@ -1,14 +1,13 @@
 #include "binary_heap.h"
 
 //Heapify subtree
-bool binary_heap::heapifyMin(unsigned int index)
+void binary_heap::heapifyMin(unsigned int index)
 {
-    bool  changed= "False";
     unsigned int L = 2*index + 1, R = 2*index + 2;
     unsigned int min = index;
     if (L < this->get_size() && heap[L].key < heap[min].key)
         min = L;
-    changed= "True";
+
 
     if (R < this->get_size() && heap[R].key < heap[min].key)
         min = R;
@@ -18,7 +17,6 @@ bool binary_heap::heapifyMin(unsigned int index)
         swap(index, min);
         heapifyMin(min);
     }
-    return changed;
 }
 
 

@@ -8,7 +8,7 @@
 struct node {
     unsigned int dim;
     double *cord;
-    struct node **edge;
+    struct node *edge;
     binary_heap reverse_edge;
 };
 
