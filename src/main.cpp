@@ -71,16 +71,27 @@ int main(int argc, char *argv[])
         cout << endl;
     }
 
-    bool changed = False;
-    do
-    { //epanalipsi mexri na min exei ginei allagh mesa
+    bool changed = "False";
+    do { 
+        changed = "True";
         for(unsigned int i=0; i<arr_size; i++) //gia kathe node
         {
-            //gia kathe reverse neighbor
-                //gia kathe neighbor
-                    //vres apostash rev_neihgbor - neighbor kai valth sto heap twn neighbors tou reverse_neighbor
+            struct node *rn;
+            for(unsigned int j=0; j < size; j++)
+            {  
+                
+                rn = (struct node *) node_array[i].reverse_edge[j];
+                double dist=euclidean_distance( node_array[i] , rn[j] );
+                cout << "euclidean Distance from node" << node_array[i].cord[0] << "," << node_array[1] << " to reverse node" ;
+                cout << rn.cord[0] << "," << rn.cord[1] << "is :" << dist << endl;
+                changed=rn[j].reverse_edge.heapifyMin(dist);
+                dist=manhattan_distance( node_array[i] , rn[j] );
+                cout << "And manhattan " << dist endl;
+            
+            }
+
         } //kane ta updates (vgale apo ola ta neighbor heap ton nodes ta perita neighbors - kopse mexri na minoun k)
-    while(changed);
+    }while(changed);
 
     return 0;
 }
