@@ -93,11 +93,7 @@ int main(int argc, char *argv[])
             }
 
         } //kane ta updates (vgale apo ola ta neighbor heap ton nodes ta perita neighbors - kopse mexri na minoun k)
-<<<<<<< HEAD
-    } while(changed);
-=======
     }while(changed);
->>>>>>> 096ab764882e7592e1c952cd479fa5e545e8df11
 
     return 0;
 }
