@@ -3,8 +3,8 @@
 
 //Distance calculation functions
 
-#include <cmath>
 #include "point.h"
+#include <cmath>
 
 double euclidean_distance(struct point, struct point);
 

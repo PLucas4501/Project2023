@@ -14,6 +14,25 @@ class vector
     T* array{ nullptr };
     unsigned int size{ 0 };
 
+    //Proxy class to intercept calls to operator[]
+    class vector_proxy
+    {
+        vector<T> &array;
+        unsigned int index;
+    public:
+        vector_proxy(vector<T> &array, unsigned int index):
+            array(array), index(index) {}
+        
+        unsigned int &operator=(T data)
+        {
+            this->array.array[index] = data;
+            return this->array.array[index];
+        }
+
+        T operator[](unsigned int index)
+        { return this->array.array[index]; }
+    };
+
 public:
     //Constructor can take an array of data + size (and hope size is right)
     vector(T data[] = nullptr, unsigned int size = 0)
@@ -27,7 +46,7 @@ public:
     }
 
     ~vector()
-    { if(this->size > 0) delete this->array; }
+    { if(this->size > 0) delete [] this->array; }
 
     unsigned int const get_size()
     { return this->size; }
@@ -37,28 +56,12 @@ public:
 
 
     //Just for element access
-    T const operator[](unsigned int index)
+    T &operator[](unsigned int index)
     { 
         if(index >= this->size)
             throw std::out_of_range("vector index out of range");
-        return array[index];
+        return this->array[index];
     }
-
-
-    //Works only for primitives
-    /*void print()
-    {
-        if(this->size == 0)
-        {
-            std::cout << "[]" << std::endl;
-            return;
-        }
-
-        std::cout << "[" << this->array[0];
-        for(unsigned int i=1; i < this->size; i++)
-            std::cout << ", " << this->array[i];
-        std::cout << "]" << std::endl;
-    }*/
 
 
     //Insert data@array[index] and resize appropriately
@@ -67,13 +70,20 @@ public:
         if(index > this->size)
             throw std::out_of_range("vector index out of range");
 
-        if((this->array = (T*) realloc(this->array, (this->size + 1)*sizeof(T))) == nullptr)
-            throw std::runtime_error("realloc failure");
+        T *new_array = new T[this->size + 1];
+        if(new_array == nullptr)
+            throw std::runtime_error("memory allocation failure");
         this->size += 1;
 
-        for(unsigned int i = this->size - 1; i > index; i--)
-            this->array[i] = this->array[i-1];
-        this->array[index] = data;
+        for(unsigned int i = 0; i < index; i++)
+            new_array[i] = this->array[i];
+        new_array[index] = data;
+
+        for(unsigned int i = index + 1; i < this->size; i++)
+            new_array[i] = this->array[i-1];
+            
+        delete [] this->array;
+        this->array = new_array;
     }
 
 
@@ -91,11 +101,17 @@ public:
         for(unsigned int i = index; i < this->size - 1; i++)
             this->array[i] = this->array[i+1];
 
-        if(this->size > 1)
-            if((this->array = (T*) realloc(this->array, (this->size - 1)*sizeof(T))) == nullptr)
-                throw std::runtime_error("realloc failure");
         this->size -= 1;
+        if(this->size > 0)
+        {
+            T *new_array = new T[this->size - 1];
+            if(new_array == nullptr)
+                throw std::runtime_error("memory allocation failure");
 
+            *new_array = *(this->array);
+            delete [] this->array;
+            this->array = new_array;
+        }
         return value;
     }
 

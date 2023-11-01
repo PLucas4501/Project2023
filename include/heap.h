@@ -85,7 +85,7 @@ public:
 
 
     //Removes element@heap_array[index] and rebalances tree
-    T remove(unsigned int index = heap_array.get_size() - 1)
+    T remove(unsigned int index)
     {
         unsigned int last = heap_array.get_size() - 1;
         heap_array.swap(index, last);
@@ -94,6 +94,10 @@ public:
         return heap_array.pop();
     }
 
+
+    //Removes last element
+    T pop()
+    { return heap_array.pop(); }
 
     //Remove all elements
     void clear()
