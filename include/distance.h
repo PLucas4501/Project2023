@@ -1,13 +1,13 @@
-//Calculating distance between two nodes
-
 #ifndef DIST_H
 #define DIST_H
 
+//Distance calculation functions
+
 #include <cmath>
-#include "node.h"
+#include "point.h"
 
-double euclidean_distance(node, node);
+double euclidean_distance(struct point, struct point);
 
-double manhattan_distance(node, node);
+double manhattan_distance(struct point, struct point);
 
 #endif

@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
                 //gia kathe neighbor
                     //vres apostash rev_neihgbor - neighbor kai valth sto heap twn neighbors tou reverse_neighbor
         } //kane ta updates (vgale apo ola ta neighbor heap ton nodes ta perita neighbors - kopse mexri na minoun k)
-    while(changed);
+    } while(changed);
 
     return 0;
 }

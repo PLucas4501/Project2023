@@ -1,6 +1,6 @@
 #include "distance.h"
 
-double euclidean_distance(node x1, node x2)
+double euclidean_distance(struct point x1, struct point x2)
 {
     double dist = 0;
     for (unsigned int i=0; i < x1.dim; i++)
@@ -10,7 +10,7 @@ double euclidean_distance(node x1, node x2)
 }
 
 
-double manhattan_distance(node x1, node x2)
+double manhattan_distance(struct point x1, struct point x2)
 {
     double dist = 0;
     for (unsigned int i=0; i < x1.dim; i++)  
