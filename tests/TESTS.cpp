@@ -14,10 +14,10 @@ node* create_node(int arr_size  ){
 }
 
 
-void print_nodes(node* nodes,int arr_size){
+/* void print_nodes(node* nodes,int arr_size){
     for(unsigned int i = 0 ; i < arr_size ; i++)
         cout << "node :" << i << " = " << nodes[i] << endl;
-}
+} */
 
 void test_euclidean_distance(void ){
     struct node* node = create_node(4);
