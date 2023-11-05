@@ -32,13 +32,19 @@ void test_manhattan_distance(void ){
     TEST_CHECK(manhattan_distance(node[0],node[3]) == 3);
 }
 
-void test_reading_datasets(const char* dataset){
+void test_reading_datasets(void ){
+    const char* dataset
     KNN KNN(2,2);
     reading_datasets(dataset , KNN);
     TEST_CHECK(KNN->graph[0].cord[0] = nullptr);
 }
 
-//KNN
+void test_KNN_insert(void ) {
+    struct node* node = create_node(1);
+    KNN KNN(1,2);
+    KNN.add_node(node[0])
+    TEST_CHECK(KNN->graph[0].cord[0] == 0);
+}
 //AVL DENTRO ?
 
 
@@ -46,5 +52,6 @@ TEST_LIST = {
 	{ "find_euclidean_distance", test_euclidean_distance },
 	{ "find_manhattan_distance", test_manhattan_distance },
     { "test_reading_datasets" , test_reading_datasets },
-	{ NULL, NULL, NULL  } // τερματίζουμε τη λίστα με NULL
+    { "test_KNN_insert" , test_KNN_insert },
+	{ NULL, NULL, NULL, NULL  } // τερματίζουμε τη λίστα με NULL
 };
