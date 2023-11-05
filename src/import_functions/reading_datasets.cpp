@@ -6,10 +6,10 @@ void reading_datasets(const char* dataset ,KNN*  KNN_problem ){
     if (file){
         while(){
             struct point element ;
-            if(fread(&element.dim,sizeof(int),1,file) != 1)
+            if(fread(&element.dim, sizeof(int), 1, file) != 1)
                 break;
             element.cord = new float[element.dim];
-            if(fread(element.cord,sizeof(float),1,file) != 1){
+            if(fread(element.cord , sizeof(float) , 1 , file ) != 1){
                 cout << "error reading coordinates" << endl;
                 delete [] element.cord;
             }
