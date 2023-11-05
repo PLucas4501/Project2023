@@ -1,7 +1,8 @@
 #include "acutest.h"
 #include "distance.h"
-#include "quicksort.h"
-#include "binary_heap.h"
+#include "KNN.h"
+#include "reading_datasets.h"
+
 
 node* create_node(int arr_size  ){
     struct node* node  = new node[arr_size]
@@ -31,19 +32,19 @@ void test_manhattan_distance(void ){
     TEST_CHECK(manhattan_distance(node[0],node[3]) == 3);
 }
 
-void test_binary_insert(void){
-    
+void test_reading_datasets(const char* dataset){
+    KNN KNN(2,2);
+    reading_datasets(dataset , KNN);
+    TEST_CHECK(KNN->graph[0].cord[0] = nullptr);
 }
 
-void test_binary_remove(void){
+//KNN
+//AVL DENTRO ?
 
-}
 
-void test_binary_swap(void){
-    
-}
 TEST_LIST = {
 	{ "find_euclidean_distance", test_euclidean_distance },
 	{ "find_manhattan_distance", test_manhattan_distance },
+    { "test_reading_datasets" , test_reading_datasets },
 	{ NULL, NULL, NULL  } // τερματίζουμε τη λίστα με NULL
 };

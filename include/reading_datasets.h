@@ -5,4 +5,4 @@
 #incldue "KNN.h"
 
 
-void reading_datasets(const char*  );
+void reading_datasets(const char* , KNN* );

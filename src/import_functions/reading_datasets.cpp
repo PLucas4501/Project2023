@@ -1,7 +1,7 @@
 #incldue "reading_datasets.h"
 
 
-void reading_datasets(const char* dataset ){
+void reading_datasets(const char* dataset ,KNN*  KNN_problem ){
     FILE* file = fopen(dataset, "rb");
     if (file){
         while(){
@@ -30,6 +30,5 @@ void reading_datasets(const char* dataset ){
     else{
         cerr << "unable to open file" << endl;
     }
-
 }
 
