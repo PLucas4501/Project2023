@@ -1,0 +1,25 @@
+name: main
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up your build environment
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          make
+
+      - name: Build and run unit tests
+        run: |
+          g++ -o tests Tests.cpp -I/include
+          
+          # Run the unit tests
+          ./tests
