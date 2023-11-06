@@ -8,6 +8,7 @@
 #include "distance.h"
 #include "point.h"
 #include "vector.h"
+#include "AVL.h"
 #include "heap.h"
 
 class KNN
@@ -18,16 +19,29 @@ class KNN
     struct node
     {
         double *cord; //Coordinate array
-        heap<unsigned int> edge; //Indices to neighbors, sorted by distance
-        vector<unsigned int> reverse_edge; //Indices to reverse neighbors
+        k_rheap<unsigned int> edge; //Indices to neighbors, sorted by distance - only the k best are kept
+        AVL reverse_edge; //Indices to reverse neighbors
     };
 
-    bool initialized{ false };
-    unsigned int k, dim; //k and the dimensions of our points
-    vector<struct node> graph; //The graph of the problem and its nodes 
+    //pair structure to keep neighbor combination (graph indices)
+    struct pair { unsigned int a,b; };
+
+    AVL distances; //Look up structure telling us when to calculate distances
+    unsigned int k, dim;
+    bool initialized{ false }; 
+    vector<struct node> graph;
     double (*dist)(struct point, struct point); //Distance metric used, default is euclidian
 
-    void krand_neighbors(unsigned int); //Used internally to create neighbors
+    //Used internally to create neighbors during initialization
+    void krand_neighbors(unsigned int);
+
+    //A key-generation function, that is:
+    //1) injective
+    //2) symmetric (key_function(a,b) == key_function(b,a))
+    //3) discards a==b values (returns 0)
+    //Should only be used AFTER (or during) initialization
+    unsigned int key_function(struct pair);
+    unsigned int key_function(unsigned int, unsigned int);
     
 public:
     KNN(unsigned int, unsigned int, double (*)(struct point, struct point), struct point*, unsigned int);
@@ -41,8 +55,8 @@ public:
 
     //Mutators
     void add_node(struct point);
+    void initialize(double (*)(struct point, struct point), unsigned int);
     void initialize(void);
-    void initialize(double (*)(struct point, struct point));
     void solve();
     void clear();
 };

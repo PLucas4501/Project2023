@@ -21,6 +21,8 @@ int main(int argc, char *argv[])
     KNN knn_problem(dim, k, manhattan_distance, point_array, arr_size);
     knn_problem.initialize();
     knn_problem.print_full_graph();
+    knn_problem.solve();
+    knn_problem.print_full_graph();
 
     for(unsigned int i=0; i<arr_size; i++)
         delete [] point_array[i].cord;

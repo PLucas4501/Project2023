@@ -1,7 +1,7 @@
 INCLUDE = ../include
 CC = g++
 CFLAGS = -Wall -I$(INCLUDE)
-OBJ = main.o distance.o KNN.o
+OBJ = main.o distance.o KNN.o AVL.o
 TGT = KNN
 
 all: $(TGT)
@@ -17,6 +17,9 @@ distance.o: distance.cpp
 
 KNN.o: KNN.cpp
 	$(CC) $(CFLAGS) -c KNN.cpp -o KNN.o
+
+AVL.o: AVL.cpp
+	$(CC) $(CFLAGS) -c AVL.cpp -o AVL.o
 
 clean:
 	rm -f *.o ./$(TGT)

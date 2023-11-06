@@ -14,35 +14,24 @@ class vector
     T* array{ nullptr };
     unsigned int size{ 0 };
 
-    //Proxy class to intercept calls to operator[]
-    class vector_proxy
-    {
-        vector<T> &array;
-        unsigned int index;
-    public:
-        vector_proxy(vector<T> &array, unsigned int index):
-            array(array), index(index) {}
-        
-        unsigned int &operator=(T data)
-        {
-            this->array.array[index] = data;
-            return this->array.array[index];
-        }
-
-        T operator[](unsigned int index)
-        { return this->array.array[index]; }
-    };
-
 public:
     //Constructor can take an array of data + size (and hope size is right)
     vector(T data[] = nullptr, unsigned int size = 0)
     {
         if(data != nullptr && size > 0)
         {
-            this->array =  new T[size];
+            this->size = size;
+            this->array = new T[size];
             for(unsigned int i=0; i < size; i++)
                 this->array[i] = data[i];
         }
+    }
+
+    //Alternatively, reserve with size given
+    vector(unsigned int size)
+    { 
+        this->size = size;
+        this->array = new T[size]; 
     }
 
     ~vector()
@@ -81,8 +70,9 @@ public:
 
         for(unsigned int i = index + 1; i < this->size; i++)
             new_array[i] = this->array[i-1];
-            
-        delete [] this->array;
+        
+        if(this->array != nullptr)
+            delete[] this->array;
         this->array = new_array;
     }
 
@@ -100,33 +90,35 @@ public:
         T value = this->array[index];
         for(unsigned int i = index; i < this->size - 1; i++)
             this->array[i] = this->array[i+1];
-
         this->size -= 1;
+
         if(this->size > 0)
         {
-            T *new_array = new T[this->size - 1];
+            T *new_array = new T[this->size];
             if(new_array == nullptr)
                 throw std::runtime_error("memory allocation failure");
 
-            *new_array = *(this->array);
-            delete [] this->array;
+            for(unsigned int i=0; i < this->size; i++)
+                new_array[i] = this->array[i];
+            delete[] this->array;
             this->array = new_array;
         }
+        
         return value;
     }
 
 
     //Remove last element
     T pop()
-    { this->remove(this->size - 1); }
+    { return this->remove(this->size - 1); }
 
 
     //Remove all elements
-    //We delete the array... we don't expect many clear-insertions to happen
     void clear()
     {
         this->size = 0;
-        delete this->array;
+        if(this->array != nullptr)
+            delete[] this->array;
     }
 
 
