@@ -6,8 +6,8 @@
 #include "point.h"
 #include <cmath>
 
-double euclidean_distance(struct point, struct point);
+float euclidean_distance(struct point, struct point);
 
-double manhattan_distance(struct point, struct point);
+float manhattan_distance(struct point, struct point);
 
 #endif

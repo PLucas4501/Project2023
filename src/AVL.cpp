@@ -79,7 +79,7 @@ vector<unsigned int> AVL::all_elements()
     return elements;
 }
 
-double AVL::find(unsigned int key) 
+float AVL::find(unsigned int key) 
 {
     struct node *tgt = this->root;
     if(tgt == nullptr)
@@ -112,7 +112,7 @@ void AVL::print_tree()
 }
 
 //Insertion will happen only if key is unique. Returns false otherwise.
-bool AVL::insert(double data, unsigned int key)
+bool AVL::insert(float data, unsigned int key)
 {
     struct node *parent = nullptr;
     struct node *tgt = this->root;

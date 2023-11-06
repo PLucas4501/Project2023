@@ -34,7 +34,7 @@ void KNN::krand_neighbors(unsigned int index)
     if(index >= this->graph.get_size())
         throw std::out_of_range("graph index out of range");
 
-    double dist;
+    float dist;
     struct pair range;
     struct point p1, p2;
     vector<struct pair> rarr;
@@ -95,7 +95,7 @@ void KNN::krand_neighbors(unsigned int index)
 KNN::KNN(
     unsigned int dim,
     unsigned int k,
-    double (*dist)(struct point, struct point) = euclidean_distance,
+    float (*dist)(struct point, struct point) = euclidean_distance,
     struct point data[] = nullptr, 
     unsigned int size = 0)
 {
@@ -132,10 +132,11 @@ void KNN::print_node(unsigned int index)
     if(index >= this->graph.get_size())
         throw std::out_of_range("graph index out of range");
 
-    std::cout << "Node " << index << ": (" << graph[index].cord[0];
-    for(unsigned int i=1; i < this->dim; i++)
-        std::cout <<  ", " << graph[index].cord[i];
-    std::cout << ")" << std::endl;
+    std::cout << "Node " << index << ": [";
+    std::cout << graph[index].edge[0];
+    for(unsigned int i=1; i < graph[index].edge.get_size(); i++)
+        std::cout << ", " << graph[index].edge[i];
+    std::cout << "]" << std::endl;
 }
 
 
@@ -188,14 +189,14 @@ void KNN::add_node(struct point data)
     if(data.dim != this->dim) //Dimensions mismatch
         throw std::logic_error("Dataset mismatch: incorrect dimensions");
 
-    new_node.cord = new double[this->dim];
+    new_node.cord = new float[this->dim];
     for(unsigned int i=0; i < this->dim; i++)
         new_node.cord[i] = data.cord[i];
     this->graph.push(new_node);
 }
 
 //Create neighbors for all nodes, and optionally set the distance metric and k
-void KNN::initialize(double (*dist)(struct point, struct point) = nullptr, unsigned int k = 0)
+void KNN::initialize(float (*dist)(struct point, struct point) = nullptr, unsigned int k = 0)
 {
     if(initialized) {
         std::cout << "Error: graph is already initialized" << std::endl;
@@ -231,7 +232,7 @@ void KNN::solve()
         return;
     }
 
-    double dist, new_dist;
+    float dist, new_dist;
     struct pair nodes; //The pair of examined nodes each time
     struct point p1{ this->dim, nullptr };
     struct point p2{ this->dim, nullptr };
@@ -283,9 +284,9 @@ void KNN::solve()
         for(unsigned int i=0; i < gsize; i++)
         {
             change = false;
-            std::cout << "Candidates for " << i << ": ";
-            new_edges[i].print();
-            this->print_full_node(i);
+            //std::cout << "Candidates for " << i << ": ";
+            //new_edges[i].print();
+            //this->print_full_node(i);
             while(!new_edges[i].empty()) {
                 dist = graph[i].edge.key(0);
                 new_dist = new_edges[i].key(0);
@@ -298,12 +299,12 @@ void KNN::solve()
                     change = true;
                     global_change = true;
                 } else break;
-            } std::cout << std::endl;
+            } //std::cout << std::endl;
             
-            if(change) {
+            /*if(change) {
                 std::cout << "--------NEW--------" << std::endl;
                 this->print_full_node(i);
-            }
+            }*/
         } iter++;
     } while(global_change);
 

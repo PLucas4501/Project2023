@@ -11,14 +11,14 @@ class AVL
 {
     struct node
     {
-        double data;
+        float data;
         unsigned int key;
         struct node *parent;
         struct node *L;
         struct node *R;
         signed char balance;
 
-        node(double data, unsigned int key, struct node *parent): 
+        node(float data, unsigned int key, struct node *parent): 
             data(data), key(key), parent(parent), L(nullptr), R(nullptr), balance(0) {}
     };
 
@@ -38,11 +38,11 @@ public:
 
     vector<unsigned int> all_elements();
     void print_tree();
-    bool insert(double, unsigned int);
+    bool insert(float, unsigned int);
     bool insert(unsigned int);
     bool remove(unsigned int);
     bool replace(unsigned int, unsigned int);
-    double find(unsigned int);
+    float find(unsigned int);
     void clear();
 };
 

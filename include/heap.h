@@ -17,7 +17,7 @@ protected:
     struct heap_node
     {
         T data;
-        double key;
+        float key;
     };
 
     bool rev; //Default is max heap (false), rev is min
@@ -63,7 +63,7 @@ protected:
 public:
     //Constructor optionally takes two arrays, one with data,
     //the other with the corresponding keys, and the size of them
-    heap(T data[] = nullptr, double keys[] = nullptr, unsigned int size = 0, bool rev = false)
+    heap(T data[] = nullptr, float keys[] = nullptr, unsigned int size = 0, bool rev = false)
     {
         this->rev = rev;
         if(is_rev())
@@ -115,7 +115,7 @@ public:
 
     //Inserts element into heap
     //Defined with bool return, so next class can override (look at k_rheap below)
-    bool insert(T data, double key)
+    bool insert(T data, float key)
     {
         unsigned int parent, index;
         struct heap_node new_node{ data, key };
@@ -173,7 +173,7 @@ public:
     k_rheap(
         unsigned int cap = 0,
         T data[] = nullptr, 
-        double keys[] = nullptr,
+        float keys[] = nullptr,
         unsigned int size = 0,
         bool rev = false)
     {
@@ -186,7 +186,7 @@ public:
 
     //If cap is reached, k_rheap will insert only if the candidate is worse
     //We also want to know if insertion happened or not, so return bool
-    bool insert(T data, double key)
+    bool insert(T data, float key)
     {
         unsigned int size = heap<T>::get_size();
         if(size < cap || cap == 0) {

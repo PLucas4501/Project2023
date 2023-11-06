@@ -18,7 +18,7 @@ class KNN
     //thus we have both a directed and an undirected graph at will.
     struct node
     {
-        double *cord; //Coordinate array
+        float *cord; //Coordinate array
         k_rheap<unsigned int> edge; //Indices to neighbors, sorted by distance - only the k best are kept
         AVL reverse_edge; //Indices to reverse neighbors
     };
@@ -30,7 +30,7 @@ class KNN
     unsigned int k, dim;
     bool initialized{ false }; 
     vector<struct node> graph;
-    double (*dist)(struct point, struct point); //Distance metric used, default is euclidian
+    float (*dist)(struct point, struct point); //Distance metric used, default is euclidian
 
     //Used internally to create neighbors during initialization
     void krand_neighbors(unsigned int);
@@ -44,7 +44,7 @@ class KNN
     unsigned int key_function(unsigned int, unsigned int);
     
 public:
-    KNN(unsigned int, unsigned int, double (*)(struct point, struct point), struct point*, unsigned int);
+    KNN(unsigned int, unsigned int, float (*)(struct point, struct point), struct point*, unsigned int);
     ~KNN();
 
     //Accessors
@@ -55,7 +55,7 @@ public:
 
     //Mutators
     void add_node(struct point);
-    void initialize(double (*)(struct point, struct point), unsigned int);
+    void initialize(float (*)(struct point, struct point), unsigned int);
     void initialize(void);
     void solve();
     void clear();
