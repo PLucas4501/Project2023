@@ -4,7 +4,7 @@
 #include "reading_datasets.h"
 
 
-node* create_node(int arr_size  ){
+node* create_node(int arr_size) {
     struct node* node  = new node[arr_size]
     for(unsigned int i = 0 ; i < arr_size ; i++){
         node[i].dim=  1;

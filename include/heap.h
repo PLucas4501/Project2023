@@ -20,20 +20,18 @@ protected:
         float key;
     };
 
-    bool rev; //Default is max heap (false), rev is min
+    bool rev; //Default is min heap (false), rev is max
     vector<struct heap_node> heap_array; //The heap itself (vector is made by us)
 
     //Changes depending on max or min heap mode
-    bool compare(unsigned int a, unsigned int b)
-    {
+    bool compare(unsigned int a, unsigned int b) {
         if(!is_rev())
-            return heap_array[a].key > heap_array[b].key;
-        return heap_array[a].key < heap_array[b].key;
+            return heap_array[a].key < heap_array[b].key;
+        return heap_array[a].key > heap_array[b].key;
     }
 
     //Private function for heapification
-    void heapify(unsigned int index)
-    {
+    void heapify(unsigned int index) {
         if(index >= this->get_size())
             throw std::out_of_range("heap index out of range");
 
@@ -53,8 +51,7 @@ protected:
     }
 
     //Swaps 2 elements with indices a & b, only useful for internal functions
-    void swap(unsigned int a, unsigned int b)
-    {
+    void swap(unsigned int a, unsigned int b) {
         if(a >= this->get_size() || b >= this->get_size())
             throw std::out_of_range("heap index out of range");
         heap_array.swap(a,b);
@@ -63,8 +60,7 @@ protected:
 public:
     //Constructor optionally takes two arrays, one with data,
     //the other with the corresponding keys, and the size of them
-    heap(T data[] = nullptr, float keys[] = nullptr, unsigned int size = 0, bool rev = false)
-    {
+    heap(T data[] = nullptr, float keys[] = nullptr, unsigned int size = 0, bool rev = false) {
         this->rev = rev;
         if(is_rev())
             std::cout << "Real shit?" << std::endl;
@@ -80,8 +76,7 @@ public:
     unsigned int const get_size()
     { return heap_array.get_size(); }
 
-    unsigned int const key(unsigned int index)
-    { 
+    unsigned int const key(unsigned int index) { 
         if(index >= this->get_size())
             throw std::out_of_range("heap index out of range");
         return heap_array[index].key; 
@@ -97,8 +92,7 @@ public:
         return heap_array[index].data;
     }
 
-    void print()
-    {
+    void print() {
         if(heap_array.get_size() == 0) {
             std::cout << "[]" << std::endl;
             return;
@@ -114,9 +108,8 @@ public:
     { if(this->empty()) rev = !rev; }
 
     //Inserts element into heap
-    //Defined with bool return, so next class can override (look at k_rheap below)
-    bool insert(T data, float key)
-    {
+    //Defined with bool return, so next class can override (look at iheap below)
+    bool insert(T data, float key) {
         unsigned int parent, index;
         struct heap_node new_node{ data, key };
         heap_array.push(new_node);
@@ -136,13 +129,11 @@ public:
     }
 
     //Removes element@heap_array[index]
-    T remove(unsigned int index)
-    {
-
+    T remove(unsigned int index) {
         unsigned int last = heap_array.get_size() - 1;
         this->swap(index, last);
         if(compare(last, index)) {
-            unsigned int data = heap_array.pop().data;
+            T data = heap_array.pop().data;
             heapify(index);
             return data;
         } else return heap_array.pop().data;
@@ -155,22 +146,22 @@ public:
 };
 
 
-/*k_rheap (k-rev heap) inherits heap and allows only k worst elements to exist inside the heap.
+/*iheap (inverse heap) inherits heap and allows only k worst elements to exist inside the heap.
 Although counter-intuitive at first, it is useful for our problem:
-A max k_rheap will fill itself like a normal heap until it reaches k elements,
+A max iheap will fill itself like a normal heap until it reaches k elements,
 after which it will insert new elements only if the new element is lesser than the root (max).
-Essentially, a max k_rheap is a revd min heap, with O(1) access to the worst element.
-Thus, we can measure improvements to our KNN graph by recording insertions on a node's neighbor k_rheap.
+Essentially, a max iheap is a reversed min heap, with O(1) access to the worst element.
+Thus, we can measure improvements to our KNN graph by recording insertions on a node's neighbor iheap.
 Note: uniqueness of the elements is not guaranteed here, but it is by the KNN implementation*/
 template <typename T>
-class k_rheap : public heap<T>
+class iheap : public heap<T>
 {
     //Heap capacity, 0 is infinite (normal heap)
     unsigned int cap;
 
 public:
     //Constructor remains the same, let for the new capacity element
-    k_rheap(
+    iheap(
         unsigned int cap = 0,
         T data[] = nullptr, 
         float keys[] = nullptr,
@@ -184,7 +175,7 @@ public:
     }
 
 
-    //If cap is reached, k_rheap will insert only if the candidate is worse
+    //If cap is reached, iheap will insert only if the candidate is worse
     //We also want to know if insertion happened or not, so return bool
     bool insert(T data, float key)
     {

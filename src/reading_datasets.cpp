@@ -23,7 +23,7 @@ void reading_datasets(const char* dataset, KNN* KNN_problem) {
 
         for(unsigned int j=1; j < element.dim; j++) {
             if(fread(&element.cord[j], sizeof(float), 1, file) != 1) {
-                //std::cerr << "error reading coordinates" << std::endl;
+                std::cerr << "error reading coordinates" << std::endl;
                 fclose(file);
                 delete [] element.cord;
             } //std::cout << ", " << element.cord[j];
@@ -33,6 +33,7 @@ void reading_datasets(const char* dataset, KNN* KNN_problem) {
     }
 
     delete[] element.cord;
+    fclose(file);
     return;
 }  
     

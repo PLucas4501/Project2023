@@ -19,17 +19,23 @@ class KNN
     struct node
     {
         float *cord; //Coordinate array
-        k_rheap<unsigned int> edge; //Indices to neighbors, sorted by distance - only the k best are kept
-        AVL reverse_edge; //Indices to reverse neighbors
+        minAVL<float, unsigned int> edge; //Indices to neighbors, sorted by distance - only the k best are kept
+        AVL<unsigned int> Redge; //Indices to reverse neighbors
+
+        //The following will be empty before and after solve
+        minAVL<float, unsigned int> Cedge; //Candidates found during solve
+        minAVL<float, unsigned int> Uedge; //New edges added from previous iteration
+        vector<unsigned int> URedge; //New reverse added from previous iteration
     };
 
     //pair structure to keep neighbor combination (graph indices)
     struct pair { unsigned int a,b; };
 
-    AVL distances; //Look up structure telling us when to calculate distances
+    bool change; //solve flag
     unsigned int k, dim;
     bool initialized{ false }; 
     vector<struct node> graph;
+    //AVL<unsigned int> distpair; //Temporarily keeps pairs of calculated distances as a unique key
     float (*dist)(struct point, struct point); //Distance metric used, default is euclidian
 
     //Used internally to create neighbors during initialization
@@ -59,6 +65,10 @@ public:
     void initialize(void);
     void solve();
     void clear();
+
+    //Special
+    void funA(unsigned int);
+    void funB(unsigned int);
 };
 
 #endif

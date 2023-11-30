@@ -7,7 +7,7 @@
 struct point
 {
     unsigned int dim; //# of dimensions
-    float *cord; //Coordinates array
+    float *cord{ nullptr }; //Coordinates array
 };
 
 #endif
