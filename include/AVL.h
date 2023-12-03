@@ -376,13 +376,13 @@ public:
         vector<struct node *> pv;
         this->all_nodes(this->root, pv);
 
-        std::cout << "[";
+        //std::cout << "[";
         if(!pv.is_empty())
             std::cout << pv[0]->key;
         
         for(unsigned int i=1; i < pv.get_size(); i++)
-            std::cout << ", " << pv[i]->key;
-        std::cout << "]" << std::endl;
+            std::cout << " " << pv[i]->key;
+        //std::cout << "]" << std::endl;
     }
 
     K operator[](unsigned int index) { 
@@ -443,7 +443,7 @@ public:
         } return this->insert(new_node); //Internal insert does the rest
     }
 
-    //Removes node with given key (& data), if found
+    //Removes node with given key, if found
     bool remove(K key) {
         struct node *tgt = new struct node(key);
         struct node *del = this->find(tgt);
@@ -473,6 +473,7 @@ public:
 //Keeps minimum key-data pairs
 template <typename K, typename D>
 class minAVL {
+protected:
     ///---Attributes---///
     //AVL node prototype
     struct node {
@@ -502,18 +503,18 @@ class minAVL {
     }
 
     void traverse(struct node *tgt, unsigned int &steps, D &data) {
-        if(tgt->L && steps > 0) {
-            steps -= 1;
+        if(tgt->L)
             traverse(tgt->L, steps, data);
-        }
 
-        if(steps == 0)
-            data = tgt->data;
+        if(steps > 0) {
+            if(--steps == 0) {
+                data = tgt->data;
+                return;
+            }
+        } else return;
 
-        if(tgt->R && steps > 0){ 
-            steps -= 1;
+        if(tgt->R)
             traverse(tgt->R, steps, data);
-        }
     }
 
     //Internal node comparison method
@@ -628,9 +629,27 @@ class minAVL {
     bool insert(struct node *tgt) {
         //Adjust parent
         if(tgt->parent) {
-            if(compare(tgt->parent, tgt) == 1)
-                tgt->parent->R = tgt;
-            else tgt->parent->L = tgt;
+            switch(compare(tgt->parent, tgt)) {
+                case 1:
+                    tgt->parent->R = tgt;
+                    break;
+                case -1:
+                    tgt->parent->L = tgt;
+                    break;
+                default: //Key Duplicate
+                    switch(data_compare(tgt->parent, tgt)) {
+                        case 1:
+                            tgt->parent->R = tgt;
+                            break;
+                        case -1:
+                            tgt->parent->L = tgt;
+                            break;
+                        default:
+                            delete tgt;
+                            std::cout << "Duplicate" << std::endl;
+                            return false;
+                    }
+            }
         } else this->root = tgt;
         
 
@@ -838,25 +857,50 @@ public:
     ~minAVL() { this->clear(); }
 
     ///---Public Interface---///
+    struct info {
+        D data;
+        K key;
+        void operator=(struct info other) {
+            data = other.data;
+            key = other.key;
+        }
+    };
+
     void print() {
         vector<struct node *> pv;
         all_nodes(this->root, pv);
 
-        std::cout << "[";
+        //std::cout << "[";
         if(!pv.is_empty())
             std::cout << pv[0]->data;
         
         for(unsigned int i=1; i < pv.get_size(); i++)
-            std::cout << ", " << pv[i]->data;
-        std::cout << "]" << std::endl;
+            std::cout << " " << pv[i]->data;
+        //std::cout << "]" << std::endl;
+        std::cout << std::endl;
     }
+
+    void printX() {
+        vector<struct node *> pv;
+        all_nodes(this->root, pv);
+
+        //std::cout << "[";
+        if(!pv.is_empty())
+            std::cout << std::hex << pv[0]->data;
+        
+        for(unsigned int i=1; i < pv.get_size(); i++)
+            std::cout << " " << std::hex << pv[i]->data;
+        //std::cout << "]" << std::endl;
+        std::cout << std::endl;
+    }
+
 
     D operator[](unsigned int index) { 
         if(index >= this->get_size())
             throw std::out_of_range("AVL index out of range");
         
         D data;
-        traverse(this->root, index, data);
+        traverse(this->root, ++index, data);
         return data;
     }
 
@@ -931,11 +975,19 @@ public:
         return this->remove(del);
     }
 
-    bool remove_max()
-    { return this->remove(this->max_node()); }
+    struct info remove_max() {
+        struct node *tgt = this->max_node();
+        struct info ret{ tgt->data, tgt->key };
+        this->remove(tgt); 
+        return ret;    
+    }
 
-    bool remove_min()
-    { return this->remove(this->min_node()); }
+    struct info remove_min() {
+        struct node *tgt = this->min_node();
+        struct info ret{ tgt->data, tgt->key };
+        this->remove(tgt); 
+        return ret;    
+    }
 
     void set_cap(unsigned int new_cap)
     { this->cap = new_cap; }
@@ -945,6 +997,51 @@ public:
         if(this->size > 0) 
             this->clear(this->root); 
     }
+};
+
+
+
+template <typename K, typename D>
+class minAVL2 : public minAVL<K, D> {
+public:
+    bool insert(K key, D data) {
+        //Max size, see if replacement is possible
+        struct minAVL<K,D>::node *tgt;
+        struct minAVL<K,D>::node *new_node = new struct minAVL<K,D>::node(key, data);
+        if(minAVL<K,D>::cap > 0 && minAVL<K,D>::size == minAVL<K,D>::cap) {
+            if(minAVL<K,D>::compare(minAVL<K,D>::max_node(), new_node) < 1) {
+                delete new_node;
+                return false;
+            } else minAVL<K,D>::remove_max();
+        }
+    
+        tgt = minAVL<K,D>::root;
+        new_node->parent = nullptr;
+        while(tgt) {
+            new_node->parent = tgt;
+            switch(minAVL<K,D>::compare(tgt, new_node)) {
+                case 1:
+                    tgt = tgt->R;
+                    break;
+                case -1:
+                    tgt = tgt->L;
+                    break;
+                default: //Key Duplicate
+                    switch(minAVL<K,D>::data_compare(tgt, new_node)) {
+                        case 1:
+                            tgt = tgt->R;
+                            break;
+                        case -1:
+                            tgt = tgt->L;
+                            break;
+                        default:
+                            delete new_node;
+                        return false;
+                    }
+            }
+        } return minAVL<K,D>::insert(new_node);
+    }
+
 };
 
 #endif

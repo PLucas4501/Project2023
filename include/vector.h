@@ -28,17 +28,19 @@ public:
     }
 
     //Alternatively, reserve with size given
-    vector(unsigned int size) { 
-        this->size = size;
+    vector(unsigned int size) {
+        this->cap = size; 
         this->array = new T[size]; 
     }
 
-    ~vector()
-    { if(this->cap > 0) delete [] this->array; }
+    ~vector() {
+        if(this->cap > 0)
+            delete [] this->array;
+    }
 
     //Just for element access
     T &operator[](unsigned int index) { 
-        if(index >= this->size)
+        if(index >= this->cap)
             throw std::out_of_range("vector index out of range");
         return this->array[index];
     }
@@ -61,7 +63,7 @@ public:
 
     //Insert data@array[index] and resize appropriately
     void insert(T data, unsigned int index) {
-        if(index > this->size)
+        if(index > this->cap)
             throw std::out_of_range("vector index out of range");
 
         if(index == cap) {

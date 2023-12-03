@@ -78,28 +78,27 @@ void KNN::krand_neighbors(unsigned int index) {
 //Constructor takes dimensions of the problem's space and k
 //Optionally, a distance metric and a dataset array
 KNN::KNN(
-    unsigned int dim,
     unsigned int k,
-    float (*dist)(struct point, struct point) = euclidean_distance,
-    struct point data[] = nullptr, 
-    unsigned int size = 0)
-{
+    vector<struct point>& data,
+    float (*dist)(struct point, struct point),
+    char *path
+) {
     this->k = k;
-    this->dim = dim;
-    if(dist != nullptr)
-        this->dist = dist;
-    else this->dist = euclidean_distance; //Default metric is euclidean
-
-    srand(time(NULL));
-    if(size > 0 && data != nullptr) {
-        for(unsigned int i=0; i < size; i++) {
-            if(data[i].dim != this->dim)
-                throw std::logic_error("Dataset mismatch: incorrect dimensions");
-            this->add_node(data[i]);
-        }
+    this->dist = dist;
+    this->dim = data[0].dim;
+    this->dataset = path;
+    for(unsigned int i=0; i < data.get_size(); i++) {
+        if(data[i].dim != this->dim)
+            throw std::logic_error("Dataset mismatch: incorrect dimensions");
+        this->add_node(data[i]);
     }
 }
 
+KNN::KNN(unsigned int k, unsigned int dim) {
+    this->k = k;
+    this->dim = dim;
+    this->dist = dist;
+}
 
 KNN::~KNN() {
     for(unsigned int i=0; i < graph.get_size(); i++) {
@@ -112,7 +111,6 @@ KNN::~KNN() {
 void KNN::print_node(unsigned int index) {
     if(index >= graph.get_size())
         throw std::out_of_range("graph index out of range");
-    std::cout << "Node " << index << ": ";
     graph[index].edge.print();
 }
 
@@ -164,31 +162,23 @@ void KNN::add_node(struct point data) {
 }
 
 //Create neighbors for all nodes, and optionally set the distance metric and k
-void KNN::initialize(float (*dist)(struct point, struct point) = nullptr, unsigned int k = 0) {
+void KNN::initialize(double sampling = 1, double delta = 0.001) {
     if(initialized) {
         std::cout << "Error: graph is already initialized" << std::endl;
         return;
     }
 
-    if(dist != nullptr)
-        this->dist = dist;
-
+    srand(time(NULL));
     if(this->k > graph.get_size())
         throw std::logic_error("unable to initialize knn graph: k > graph");
 
-    if(k > 0)
-        this->k = k;
-
-    for(unsigned int i=0; i < graph.get_size(); i++)
-    {
+    this->delta = delta;
+    this->sample_size = sampling * this->k;
+    for(unsigned int i=0; i < graph.get_size(); i++) {
         graph[i].edge.set_cap(this->k);
         this->krand_neighbors(i);
     } initialized = true;
 }
-
-
-void KNN::initialize(void)
-{ this->initialize(nullptr, 0); }
 
 
 //Solve the graph: iterate and find the k nearest neighbors for every node
@@ -200,6 +190,7 @@ void KNN::solve() {
     }
 
     //While change is still occuring
+    unsigned int termination = this->delta * this->k * this->graph.get_size();
     do { 
         //For every node
         for(unsigned int i=0; i < graph.get_size(); i++) {
@@ -213,29 +204,107 @@ void KNN::solve() {
         //Update graph: for every node, check the best k candidates found,
         //and see if they can replace the current ones.
         //If any change happens, we proceed to the next iteration.
-        this->change = false;
+        this->change = 0;
         for(unsigned int i=0; i < graph.get_size(); i++) {
             if(!graph[i].Cedge.is_empty())
                 funB(i);
         } iter++;
-    } while(this->change);
-    std::cout << "Graph solved at " << iter << " iterations." << std::endl;
+    } while(this->change > termination);
+
+    //fix this
+    struct minAVL<float, unsigned int>::info rem;
+    for(unsigned int i=0; i < graph.get_size(); i++) {
+        while(!graph[i].Uedge.is_empty()) {
+            rem = graph[i].Uedge.remove_max();
+            graph[i].edge.insert(rem.key, rem.data);
+        }
+    } this->print_graph();
+    std::cout << "Graph solved at " << iter << " iterations" << std::endl;
+
+    //Open true graph
+    int i = -1;
+    unsigned int neighbor;
+    char true_path[100] = { '\0' };
+    vector<unsigned int> true_neighbors;
+    double diff, accuracy, correct, total_accuracy = 0;
+    strcat(true_path, EXPORT_PATH);
+    while(this->dataset[++i] != '\0') 
+        if(this->dataset[i] == '.')
+            break;
+
+    memcpy(true_path + strlen(true_path), this->dataset, i);
+    FILE *true_graph = fopen(true_path, "r");
+    if(!true_graph) {
+        char command[100] = { '\0' };
+        strcat(command, "GraphSolve ");
+        strcat(command, this->dataset);
+        system(command);
+        if(!(true_graph = fopen(true_path, "r"))) {
+            std::cout << "Unable to check for accuracy: could not open true graph file" << std::endl;
+            return;
+        }
+    }
+
+    fscanf(true_graph, "%*[^\n]\n");
+    correct = graph.get_size()*this->k;
+    for(unsigned int i=0; i < graph.get_size(); i++) {
+        for(unsigned int j=0; j < graph.get_size() - 1; j++) {
+            if(fscanf(true_graph, "%u", &neighbor) < 0) {
+                std::cerr << "Error reading file (Node " << i << ", iteration " << j << ")" << std::endl;
+                fclose(true_graph);
+                return;                
+            } true_neighbors.push(neighbor);
+        }
+
+        //Match found neighbors with real
+        accuracy = 0;
+        for(unsigned int j=0; j < this->k; j++) {
+            if(graph[i].edge[j] != true_neighbors[j]) {
+                correct--;
+                for(unsigned int l = 0; l < true_neighbors.get_size(); l++) {
+                    if(graph[i].edge[j] == true_neighbors[l]) {
+                        diff = abs(j - l);
+                        break;
+                    }
+                } accuracy += ((double) true_neighbors.get_size() - diff)/true_neighbors.get_size();
+            } else accuracy += 1;
+        } total_accuracy += accuracy/this->k;
+        true_neighbors.clear();
+    } fclose(true_graph);
+    std::cout << "Accuracy: " << (total_accuracy/graph.get_size())*100 << "% | ";
+    std::cout << (correct/(graph.get_size()*this->k))*100 << "\% perfect neighbors" << std::endl;
 }
 
 
-//Thread A placeholder: calculate candidates
-//Cedges must either have locks, or candidates will be calculated localy on index,
-//then evaluated on the next step (in which case, locks must be acquired on Uedge/URedge)
 void KNN::funA(unsigned int index) {
     float dist;
-    unsigned int nodeA, nodeB;
     struct point p1{ this->dim, nullptr };
     struct point p2{ this->dim, nullptr };
+    struct minAVL<float, unsigned int>::info rem;
+    unsigned int nodeA, nodeB, sample = this->sample_size;
 
-    //Step 1: new neighbors X old reverse neighbors
+    //Step 1: new neighbors X old (neighbors + reverse neighbors)
     while(!graph[index].Uedge.is_empty()) {
-        nodeA = graph[index].Uedge.min();
-        for(unsigned int i=0; i < graph[index].Redge.get_size(); i++) { 
+        if(sample%2 == 0)
+            rem = graph[index].Uedge.remove_min();
+        else rem = graph[index].Uedge.remove_max();
+
+        //Other neighbors
+        nodeA = rem.data;
+        for(unsigned int i=0; i < graph[index].edge.get_size(); i++) {
+            nodeB = graph[index].edge[i];
+            p1.cord = graph[nodeA].cord;
+            p2.cord = graph[nodeB].cord;
+            dist = this->dist(p1, p2); //Maybe remember to not calculate again in neighbor if possible?
+            graph[nodeA].Cedge.insert(dist, nodeB); //<<<LOCK>>>
+            graph[nodeB].Cedge.insert(dist, nodeA); //<<<LOCK>>>
+        } graph[index].edge.insert(rem.key, rem.data);
+    
+        //Old reverse
+        for(unsigned int i=0; i < graph[index].Redge.get_size(); i++) {
+            if(i == this->sample_size)
+                break;
+    
             nodeB = graph[index].Redge[i]; //[] access to AVL is a bit time consuming
             if(nodeA == nodeB)
                 continue;
@@ -245,16 +314,18 @@ void KNN::funA(unsigned int index) {
             dist = this->dist(p1, p2); //Maybe remember to not calculate again in neighbor if possible?
             graph[nodeA].Cedge.insert(dist, nodeB); //<<<LOCK>>>
             graph[nodeB].Cedge.insert(dist, nodeA); //<<<LOCK>>>
-        } graph[index].edge.insert(graph[index].Uedge.min_key(), graph[index].Uedge.min());
-        graph[index].Uedge.remove_min();
+        }
     }
 
     //Step 2: New reverse neighbors X all neighbors (new + old)
+    sample = sample_size;
     for(unsigned int i=0; i < graph[index].URedge.get_size(); i++) {  
-        //Sensitive with bigger k (edge is AVL), can convert to array if space is OK
-    
         nodeA = graph[index].URedge[i];
         graph[index].Redge.insert(nodeA); //Add to reverse neighbors
+        if(sample > 0)
+            sample--;
+        else continue;
+
         for(unsigned int j=0; j < graph[index].edge.get_size(); j++) {
             nodeB = graph[index].edge[j];
             if(nodeA == nodeB)
@@ -271,22 +342,20 @@ void KNN::funA(unsigned int index) {
 
 
 //Thread B placeholder: evaluate candidates and update graph
-//Improvements: remake AVL::remove/insert to return data-key pair removed
 void KNN::funB(unsigned int index) {
-    //std::cout << "Node " << index << " candidates VS edges:" << std::endl << "\t";
-    //graph[index].Cedge.print(); std::cout << "\t";
-    //graph[index].edge.print();
+    //unsigned int local_change = 0; //For multithreading
+    struct minAVL<float, unsigned int>::info rem;
     while(!graph[index].Cedge.is_empty()) {
         if(graph[index].Cedge.min_key() < graph[index].edge.max_key()) { //Better key found
             if(graph[index].edge.find(graph[index].Cedge.min_key())) {
                 graph[index].Cedge.remove_min();
                 continue;
-            } graph[graph[index].Cedge.min()].URedge.push(index); //Add untested reverse neighbor to new neighbor <<<LOCK>>>
-            graph[graph[index].edge.max()].Redge.remove(index); //Remove reverse neighbor from old neighbor <<<LOCK>>>  
-            graph[index].Uedge.insert(graph[index].Cedge.min_key(), graph[index].Cedge.min());
-            graph[index].edge.remove_max();
-            graph[index].Cedge.remove_min();
-            this->change = true;
+            } rem = graph[index].Cedge.remove_min();
+            graph[index].Uedge.insert(rem.key, rem.data);            
+            graph[rem.data].URedge.push(index); //Add untested reverse neighbor to new neighbor <<<LOCK>>>
+            rem = graph[index].edge.remove_max();
+            graph[rem.data].Redge.remove(index); //Remove reverse neighbor from old neighbor <<<LOCK>>>  
+            this->change += 1; //Multithreading: local_change += 1
         } else graph[index].Cedge.clear();
     }
 }

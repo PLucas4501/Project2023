@@ -1,38 +1,49 @@
-#include <iostream>
 #include "KNN.h"
-#include "point.h"
-#include "distance.h"
-#include "reading_datasets.h"
 
 using namespace std;
 
 int main(int argc, char *argv[])
-{  
-    srand(time(NULL));
-    
-    unsigned int k = 5;
-    /*const unsigned int arr_size = 50, dim = 100;
-    struct point point_array[arr_size];
-    for(unsigned int i=0; i < arr_size; i++) {
-        point_array[i].dim = dim;
-        point_array[i].cord = new float[dim];
-        for(unsigned int j=0; j < dim; j++)
-            point_array[i].cord[j] = i;
+{ 
+    int opt, k = 3;
+    char metric[100] = { '\0' };
+    double sampling = 1, delta = 0.001;
+    while((opt = getopt(argc, argv, "k:s:m:d:")) != -1) {
+        switch(opt) {
+            case 'k':
+                k = atoi(optarg);
+                if(k < 0)
+                { fprintf(stderr, "Invalid k\n"); exit(EXIT_FAILURE); }
+                break;
+            case 's':
+                sampling = atof(optarg);
+                if(sampling > 1 || sampling <= 0)
+                { fprintf(stderr, "Invalid sampling rate\n"); exit(EXIT_FAILURE); }
+                break;
+            case 'm':
+                strcat(metric, optarg);
+                break;
+            case 'd':
+                delta = atof(optarg);
+                if(delta > 1 || delta <= 0)
+                { fprintf(stderr, "Invalid delta\n"); exit(EXIT_FAILURE); }
+                break;
+            default:
+                fprintf(stderr, "Invalid CMD Line arguements\n");
+                exit(EXIT_FAILURE);
+        }
     }
 
-    KNN knn_problem(dim, k, manhattan_distance, point_array, arr_size);*/
-    
-    const char *path = "../datasets/D1.bin";
-    KNN knn_problem(100, k, euclidean_distance, nullptr, 0);
-    reading_datasets(path, &knn_problem);
+    char path[100] = { '\0' };
+    strcat(path, IMPORT_PATH); 
+    strcat(path, argv[optind]);
 
-
-    knn_problem.initialize();
+    vector <struct point> v;
+    binary(path, 100, v);
+    KNN knn_problem(k, v, euclidean_distance, argv[optind]);
+    knn_problem.initialize(sampling, delta);
     knn_problem.solve();
-    knn_problem.print_graph();
 
-    /*for(unsigned int i=0; i<arr_size; i++)
-        delete [] point_array[i].cord;
-
-    return 0;*/
+    for(unsigned int i=0; i < v.get_size(); i++)
+        delete [] v[i].cord;
+    return 0;
 }
