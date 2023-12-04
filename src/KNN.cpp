@@ -288,9 +288,13 @@ void KNN::funA(unsigned int index) {
         if(sample%2 == 0)
             rem = graph[index].Uedge.remove_min();
         else rem = graph[index].Uedge.remove_max();
+        nodeA = rem.data;
+        if(sample == 0) {
+            graph[index].edge.insert(rem.key, rem.data);
+            continue;
+        } else sample--;
 
         //Other neighbors
-        nodeA = rem.data;
         for(unsigned int i=0; i < graph[index].edge.get_size(); i++) {
             nodeB = graph[index].edge[i];
             p1.cord = graph[nodeA].cord;
@@ -301,14 +305,14 @@ void KNN::funA(unsigned int index) {
         } graph[index].edge.insert(rem.key, rem.data);
     
         //Old reverse
+        sample = this->sample_size;
         for(unsigned int i=0; i < graph[index].Redge.get_size(); i++) {
-            if(i == this->sample_size)
-                break;
-    
-            nodeB = graph[index].Redge[i]; //[] access to AVL is a bit time consuming
+            nodeB = graph[index].Redge[i];
             if(nodeA == nodeB)
                 continue;
-
+            if(sample-- == 0)
+                break;
+    
             p1.cord = graph[nodeA].cord;
             p2.cord = graph[nodeB].cord;
             dist = this->dist(p1, p2); //Maybe remember to not calculate again in neighbor if possible?
@@ -322,10 +326,10 @@ void KNN::funA(unsigned int index) {
     for(unsigned int i=0; i < graph[index].URedge.get_size(); i++) {  
         nodeA = graph[index].URedge[i];
         graph[index].Redge.insert(nodeA); //Add to reverse neighbors
-        if(sample > 0)
-            sample--;
-        else continue;
-
+        if(sample == 0)
+            continue;
+        else sample--;
+    
         for(unsigned int j=0; j < graph[index].edge.get_size(); j++) {
             nodeB = graph[index].edge[j];
             if(nodeA == nodeB)
