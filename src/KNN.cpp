@@ -1,160 +1,127 @@
+#include <iostream>
+#include <stdexcept>
+#include <random>
+#include <chrono>
+#include <cstdio>
+#include <cstring>
+#include <omp.h>
+
 #include "KNN.h"
 
-//Key generating function
-unsigned int KNN::key_function(struct pair n) {
-    //We don't want identical
-    if(n.a == n.b)
-        return 0;
-
-    //Symmetry
-    if(n.b < n.a) {
-        unsigned int temp = n.b;
-        n.b = n.a;
-        n.a = temp;
-    }
-
-    unsigned int offset = 0;
-    for(unsigned int i=0; i < n.a; i++)
-        offset += graph.get_size() - (i+1);
-    return offset + n.b;
-}
-
-unsigned int KNN::key_function(unsigned int a, unsigned int b) { 
-    struct pair p{ a, b };
-    return this->key_function(p);
-}
-
-//Create k unique random neighbors for node@graph[index], and calculate distances
-//The approach takes a random index from one of two ranges [0, index), (index, last_index],
-//and then splits that range into two based on the result. Then repeats k times.
+//Create k unique random neighbors for node@graph[index]
 void KNN::krand_neighbors(unsigned int index) {
     if(index >= graph.get_size())
         throw std::out_of_range("graph index out of range");
 
-    struct pair range;
-    struct point p1, p2;
-    vector<struct pair> rarr;
-    unsigned int crange, cindex = index;
+    unsigned int cindex, i;
+    AVL<unsigned int> candidates;
+    for(i=0; i < graph.get_size(); i++)
+        if(i != index) 
+            candidates.insert(i);
 
-    //Create initial range(s)
-    if(index > 1) { //[0, index)
-        range.a = 0;
-        range.b = index;
-        rarr.push(range);
-    }
+    i = this->k;
+    std::mt19937 gen(std::chrono::system_clock::now().time_since_epoch().count());
+    while(i > 0) {
+        cindex = gen() % candidates.get_size();
+        cindex = candidates.remove_index(cindex);
 
-    if(index < graph.get_size() - 2) { //(index, size -1]
-        range.a = index + 1;
-        range.b = graph.get_size();
-        rarr.push(range);
-    }
+        //It is possible for a neighbor to not be inserted due to same key (distance)
+        if(graph[index].edge.New.insert(this->distance(graph[index].cord, graph[cindex].cord), cindex))
+            i -= 1;
+        else if(candidates.is_empty()) //This is a problem... though highly unlikely
+            throw std::logic_error("unable to initialize knn graph: insufficient neighbors");
 
-    //Add k neighbors
-    p1.dim = p2.dim = this->dim;
-    for(unsigned int i=0; i < this->k; i++) {
-        //Find neighbor
-        crange = rand()%rarr.get_size();
-        cindex = rand()%(rarr[crange].b - rarr[crange].a) + rarr[crange].a;
-    
-        //Add neighbor to node, and reverse neighbor to neighbor (untested)
-        p1.cord = graph[index].cord;
-        p2.cord = graph[cindex].cord;
-        if(graph[index].Uedge.insert(this->dist(p1, p2), cindex))
-            graph[cindex].URedge.push(index);
-        
-        //Split range
-        range.b = rarr[crange].b;
-        rarr[crange].b = cindex;
-        range.a = cindex + 1;
-        if(rarr[crange].b - rarr[crange].a == 0)
-            rarr.remove(crange);
-
-        if(range.b - range.a > 0 )
-            rarr.push(range);
-    }
+        //Reverse neighbor insertion requires lock
+        omp_set_lock(&(graph[cindex].lock));
+        graph[cindex].Redge.New.insert(index);
+        omp_unset_lock(&(graph[cindex].lock));  
+    } candidates.clear();
 }
+
+//Evaluate and add candidates to each otherz
+void KNN::add_candidates(unsigned int nodeA, unsigned int nodeB) {
+    if(nodeA == nodeB) return;
+    float key = this->distance(graph[nodeA].cord, graph[nodeB].cord);
+
+    //Add candidates to each other
+    omp_set_lock(&(graph[nodeA].lock));
+    graph[nodeA].Cedge.insert(key, nodeB);
+    omp_unset_lock(&(graph[nodeA].lock));  
+
+    omp_set_lock(&(graph[nodeB].lock));
+    graph[nodeB].Cedge.insert(key, nodeA);
+    omp_unset_lock(&(graph[nodeB].lock));  
+}
+
 
 //------PUBLIC INTERFACE------//
-//Constructor takes dimensions of the problem's space and k
-//Optionally, a distance metric and a dataset array
-KNN::KNN(
-    unsigned int k,
-    vector<struct point>& data,
-    float (*dist)(struct point, struct point),
-    char *path
-) {
-    this->k = k;
-    this->dist = dist;
-    this->dim = data[0].dim;
-    this->dataset = path;
-    for(unsigned int i=0; i < data.get_size(); i++) {
-        if(data[i].dim != this->dim)
-            throw std::logic_error("Dataset mismatch: incorrect dimensions");
-        this->add_node(data[i]);
-    }
+KNN::KNN(vector<struct point> &point_vector, unsigned int threads = 4) {
+    this->threads = threads;
+    this->dim = point_vector[0].dim;
+    for(unsigned int i=0; i < point_vector.get_size(); i++)
+        this->add_node(point_vector[i]);
+
+    //Create data locks
+    #pragma omp parallel for num_threads(threads)
+    for(unsigned int i=0; i < graph.get_size(); i++)
+        omp_init_lock(&(graph[i].lock));
+    omp_set_num_threads(threads);
 }
 
-KNN::KNN(unsigned int k, unsigned int dim) {
-    this->k = k;
-    this->dim = dim;
-    this->dist = dist;
+KNN::KNN(char *path, unsigned int threads = 4) {
+    vector<struct point> point_vector;
+    char dataset_path[100] = { '\0' };
+
+    strcat(dataset_path, IMPORT_PATH);
+    strcat(dataset_path, path);
+    binary(dataset_path, point_vector);
+
+    this->threads = threads;
+    this->dim = point_vector[0].dim;
+    for(unsigned int i=0; i < point_vector.get_size(); i++) {
+        this->add_node(point_vector[i]);
+        delete [] point_vector[i].cord;
+    }
+
+    //Create data locks
+    #pragma omp parallel for num_threads(threads)
+    for(unsigned int i=0; i < graph.get_size(); i++)
+        omp_init_lock(&(graph[i].lock));
+    strcat(this->dataset, path);
 }
+
 
 KNN::~KNN() {
     for(unsigned int i=0; i < graph.get_size(); i++) {
+        delete[] graph[i].cord;
         graph[i].edge.clear();
         graph[i].Redge.clear();
-        delete[] graph[i].cord;
+        omp_destroy_lock(&(graph[i].lock));
     } graph.clear();
 }
 
-void KNN::print_node(unsigned int index) {
-    if(index >= graph.get_size())
-        throw std::out_of_range("graph index out of range");
-    graph[index].edge.print();
-}
-
-
-//Print one node with its reverse neighbors
-void KNN::print_full_node(unsigned int index) {
-    if(index >= graph.get_size())
-        throw std::out_of_range("graph index out of range");
-
-    this->print_node(index);
-    std::cout << "\tReverse:";
-    graph[index].Redge.print();
-}
-
-
-//Print graph (no Rneighbors)
+//Simple print
 void KNN::print_graph() {
-    for(unsigned int i=0; i < graph.get_size(); i++)
-        this->print_node(i);
+    for(unsigned int i=0; i<graph.get_size(); i++)
+        graph[i].edge.Old.print();
 }
 
-
-//Print full graph (w/ Rneighbors)
-//Not recommended for large graphs (large k/graph size/dimensions)...
-void KNN::print_full_graph() {
-    for(unsigned int i=0; i < graph.get_size(); i++)
-        this->print_full_node(i);
+//Calculate distance between two points
+float KNN::distance(float *nodeA, float *nodeB) {
+    struct point p1{ this->dim, nodeA };
+    struct point p2{ this->dim, nodeB };
+    return this->dist(p1, p2);
 }
-
 
 //We can add an arbitrary amount of nodes
 void KNN::add_node(struct point data) {
-    if(initialized) {
-        std::cout << "Error: graph is already initialized" << std::endl;
-        return;
-    }
+    if(this->initialized)
+        throw std::logic_error("unable to add node to graph: graph already initialized");
 
-    struct node new_node;
-    new_node.edge.set_cap(this->k); //Only k best neighbors are kept
-    new_node.Cedge.set_cap(this->k);
-    new_node.Uedge.set_cap(this->k); //Unecessary, but why not
     if(data.dim != this->dim) //Dimensions mismatch
         throw std::logic_error("Dataset mismatch: incorrect dimensions");
 
+    struct node new_node;
     new_node.cord = new float[this->dim];
     for(unsigned int i=0; i < this->dim; i++)
         new_node.cord[i] = data.cord[i];
@@ -162,208 +129,207 @@ void KNN::add_node(struct point data) {
 }
 
 //Create neighbors for all nodes, and optionally set the distance metric and k
-void KNN::initialize(double sampling = 1, double delta = 0.001) {
-    if(initialized) {
-        std::cout << "Error: graph is already initialized" << std::endl;
-        return;
-    }
+void KNN::initialize(unsigned int k, double sampling = 1, double delta = 0.001) {
+    if(this->initialized)
+        throw std::logic_error("unable to initialize knn graph: graph already initialized");
 
-    srand(time(NULL));
-    if(this->k > graph.get_size())
-        throw std::logic_error("unable to initialize knn graph: k > graph");
+   this->k = k;
+    if(this->k >= graph.get_size())
+        throw std::logic_error("unable to initialize knn graph: k >= graph");
 
+    typedef std::chrono::high_resolution_clock timer;
+    timer::time_point start = timer::now();
+    std::cout << "Initializing graph... " << std::flush;
     this->delta = delta;
+    this->dist = euclidean_distance;
     this->sample_size = sampling * this->k;
+    #pragma omp parallel for
     for(unsigned int i=0; i < graph.get_size(); i++) {
-        graph[i].edge.set_cap(this->k);
+        graph[i].Cedge.set_cap(this->k);
+        graph[i].edge.Old.set_cap(this->k);
         this->krand_neighbors(i);
-    } initialized = true;
+    } this->initialized = true;
+    timer::time_point finish = timer::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
+    std::cout << "initialization complete | Time elapsed: " << elapsed.count() << "ms" << std::endl;
 }
 
 
-//Solve the graph: iterate and find the k nearest neighbors for every node
+//----------------Solve the graph: iterate and find the k nearest neighbors for every node----------------//
+
+//Improvements: 
+//Fix whatever the fck makes nodes with less than k neighbors at end
+//Maybe a little faster in Region A?
 void KNN::solve() {
-    unsigned int iter = 0;
-    if(!initialized) {
-        std::cout << "Graph not initialized for solving" << std::endl;
-        return;
-    }
+    if(!initialized)
+        throw std::logic_error("unable to solve knn graph: knn graph not initialized");
+    typedef std::chrono::high_resolution_clock timer;
+    std::cout << "Solving Graph... " << std::flush;
 
-    //While change is still occuring
-    unsigned int termination = this->delta * this->k * this->graph.get_size();
-    do { 
-        //For every node
-        for(unsigned int i=0; i < graph.get_size(); i++) {
-            if(graph[i].Uedge.is_empty() && graph[i].URedge.is_empty()) //No new neighbors
-                continue;
+    timer::time_point start = timer::now();
+    AVL<unsigned int> sampledNR;
+    minAVL<float, unsigned int> sampledN;
+    unsigned int i, j, k, tgt_node, iterations = 0;
+    struct minAVL<float, unsigned int>::payload rem;
+    unsigned int threshold = this->delta * this->k * graph.get_size();
+    do {
+        timer::time_point regA_S = timer::now();
+        #pragma omp parallel for \
+            private(i, j, k, tgt_node, rem, sampledN, sampledNR)
+        for(i=0; i < graph.get_size(); i++) {
+            //Sample neighbors (sampling policy is just getting the min)
+            for(j=0; j < this->sample_size; j++) {
+                if(!graph[i].edge.New.is_empty()) {
+                    rem = graph[i].edge.New.remove_min();
+                    sampledN.insert(rem.key, rem.data);
+                }
 
-            //Call thread
-            funA(i);
-        }
+                if(!graph[i].Redge.New.is_empty())
+                    sampledNR.insert(graph[i].Redge.New.remove_min());
+            }
 
-        //Update graph: for every node, check the best k candidates found,
-        //and see if they can replace the current ones.
-        //If any change happens, we proceed to the next iteration.
+            //Check new neighbors
+            for(j=0; j<sampledN.get_size(); j++) {
+                tgt_node = sampledN[j].data;
+
+                for(k=j+1; k<sampledN.get_size(); k++)
+                    this->add_candidates(tgt_node, sampledN[k].data);
+
+                for(k=0; k<sampledNR.get_size(); k++)
+                    this->add_candidates(tgt_node, sampledNR[k]);
+
+                for(k=0; k<graph[i].edge.Old.get_size(); k++)
+                    this->add_candidates(tgt_node, graph[i].edge.Old[k].data);
+
+                for(k=0; k<graph[i].Redge.Old.get_size() && k<this->sample_size; k++)
+                    this->add_candidates(tgt_node, graph[i].Redge.Old[k]);
+            }
+
+            //Check new reverse neighbors
+            for(j=0; j<sampledNR.get_size(); j++) {
+                tgt_node = sampledNR[j];
+
+                for(k=j+1; k<sampledNR.get_size(); k++)
+                    this->add_candidates(tgt_node, sampledNR[k]);
+
+                for(k=0; k<graph[i].edge.Old.get_size(); k++)
+                    this->add_candidates(tgt_node, graph[i].edge.Old[k].data);
+
+                for(k=0; k<graph[i].Redge.Old.get_size() && k<this->sample_size; k++)
+                    this->add_candidates(tgt_node, graph[i].Redge.Old[k]);
+            }
+
+            //Make new neighbors and reverse neighbors old
+            while(!sampledN.is_empty()) {
+                rem = sampledN.remove_min();
+                graph[i].edge.Old.insert(rem.key, rem.data);
+            }
+
+            while(!sampledNR.is_empty())
+                graph[i].Redge.Old.insert(sampledNR.remove_min());
+        } timer::time_point regA_F = timer::now();
+        auto elapsedA = std::chrono::duration_cast<std::chrono::milliseconds>(regA_F - regA_S);
+        //std::cout << "Region A: " << elapsedA.count() << "ms" << std::endl;
+
+        //Parallel region B
         this->change = 0;
-        for(unsigned int i=0; i < graph.get_size(); i++) {
-            if(!graph[i].Cedge.is_empty())
-                funB(i);
-        } iter++;
-    } while(this->change > termination);
+        timer::time_point regB_S = timer::now();
+        #pragma omp parallel for private(i, rem) reduction(+:change)
+        for(i=0; i<graph.get_size(); i++) {
+            while(!graph[i].Cedge.is_empty()) {
+                rem = graph[i].Cedge.remove_min();
+                if(rem.key < graph[i].edge.max_key()) { //Better key found
+                    if(graph[i].edge.find(rem.key)) //Check that neighbor does not already exist
+                        continue;
+             
+                    omp_set_lock(&(graph[rem.data].lock));
+                    graph[rem.data].Redge.New.insert(i); //Add new reverse neighbor to new neighbor
+                    omp_unset_lock(&(graph[rem.data].lock));
 
-    //fix this
-    struct minAVL<float, unsigned int>::info rem;
-    for(unsigned int i=0; i < graph.get_size(); i++) {
-        while(!graph[i].Uedge.is_empty()) {
-            rem = graph[i].Uedge.remove_max();
-            graph[i].edge.insert(rem.key, rem.data);
+                    omp_set_lock(&(graph[graph[i].edge.max()].lock));
+                    graph[graph[i].edge.max()].Redge.remove(i); //Remove reverse neighbor from old neighbor
+                    omp_unset_lock(&(graph[graph[i].edge.max()].lock));
+
+                    graph[i].edge.New.insert(rem.key, rem.data);
+                    graph[i].edge.remove_max();
+                    change++;
+                } else graph[i].Cedge.clear();
+            }
+        } timer::time_point regB_F = timer::now();
+        auto elapsedB = std::chrono::duration_cast<std::chrono::milliseconds>(regB_F - regB_S);
+        //std::cout << "Region B: " << elapsedB.count() << "ms" << std::endl;
+        iterations++;
+    } while(this->change > threshold);
+    timer::time_point finish = timer::now();
+    std::chrono::milliseconds elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
+    std::cout << "graph solved at " << iterations << " iterations";
+    std::cout << " | Time elapsed: " << elapsed.count() << "ms" << std::endl;
+
+    //Transfer flagged nodes
+    for(i=0; i<graph.get_size(); i++) {
+        while(!graph[i].edge.New.is_empty()) {
+            rem = graph[i].edge.New.remove_min();
+            graph[i].edge.Old.insert(rem.key, rem.data);
         }
-    } this->print_graph();
-    std::cout << "Graph solved at " << iter << " iterations" << std::endl;
+
+        if(graph[i].edge.Old.get_size() != this->k)
+            std::cerr << "Warning: node " << i << " with less than k neighbors after solve" << std::endl;
+    } std::cout << "Calculating accuracy... " << std::flush;
+    start = timer::now();
 
     //Open true graph
-    int i = -1;
+    i = 0;
+    FILE *true_graph;
     unsigned int neighbor;
-    char true_path[100] = { '\0' };
+    char solved[150] = { '\0' };
     vector<unsigned int> true_neighbors;
-    double diff, accuracy, correct, total_accuracy = 0;
-    strcat(true_path, EXPORT_PATH);
-    while(this->dataset[++i] != '\0') 
-        if(this->dataset[i] == '.')
+    double best, difference, accuracy, total_accuracy = 0;
+    strcat(solved, EXPORT_PATH);
+    while(this->dataset[i] != '\0') 
+        if(this->dataset[i++] == '.')
             break;
+    strncat(solved, this->dataset, i - 1);
 
-    memcpy(true_path + strlen(true_path), this->dataset, i);
-    FILE *true_graph = fopen(true_path, "r");
-    if(!true_graph) {
-        char command[100] = { '\0' };
-        strcat(command, "GraphSolve ");
-        strcat(command, this->dataset);
+    //Open true graph
+    if(!(true_graph = fopen(solved, "r"))) {
+        char command[200] = { '\0' };
+        sprintf(command, "GraphSolve %s -k %u -t %u", this->dataset, this->k, this->threads);
         system(command);
-        if(!(true_graph = fopen(true_path, "r"))) {
-            std::cout << "Unable to check for accuracy: could not open true graph file" << std::endl;
+        if(!(true_graph = fopen(solved, "r"))) {
+            std::cerr << "unable to check for accuracy: could not open true graph file" << std::endl;
             return;
         }
     }
 
+    //Read lines consecutively and check for accuracy
     fscanf(true_graph, "%*[^\n]\n");
-    correct = graph.get_size()*this->k;
-    for(unsigned int i=0; i < graph.get_size(); i++) {
-        for(unsigned int j=0; j < graph.get_size() - 1; j++) {
+    for(i=0; i < graph.get_size(); i++) {
+        for(j=0; j < this->k; j++) {
             if(fscanf(true_graph, "%u", &neighbor) < 0) {
-                std::cerr << "Error reading file (Node " << i << ", iteration " << j << ")" << std::endl;
+                std::cerr << "Error reading file (Node " << i << ", neighbor " << j << ")" << std::endl;
                 fclose(true_graph);
                 return;                
             } true_neighbors.push(neighbor);
         }
 
-        //Match found neighbors with real
+        //Match found neighbors with real ones
         accuracy = 0;
-        for(unsigned int j=0; j < this->k; j++) {
-            if(graph[i].edge[j] != true_neighbors[j]) {
-                correct--;
-                for(unsigned int l = 0; l < true_neighbors.get_size(); l++) {
-                    if(graph[i].edge[j] == true_neighbors[l]) {
-                        diff = abs(j - l);
-                        break;
-                    }
-                } accuracy += ((double) true_neighbors.get_size() - diff)/true_neighbors.get_size();
+        for(j=0; j < graph[i].edge.Old.get_size(); j++) {
+            if(graph[i].edge.Old[j].data != true_neighbors[j]) {
+                best = this->distance(graph[i].cord, graph[true_neighbors[j]].cord);
+                difference = std::abs(best - graph[i].edge.Old[j].key);
+                if(difference > 1)
+                    std::cout << difference << ", " << best << std::endl;
+                accuracy += 1 - difference/best;
             } else accuracy += 1;
-        } total_accuracy += accuracy/this->k;
+        }
+        total_accuracy += accuracy/graph[i].edge.Old.get_size();
         true_neighbors.clear();
     } fclose(true_graph);
-    std::cout << "Accuracy: " << (total_accuracy/graph.get_size())*100 << "% | ";
-    std::cout << (correct/(graph.get_size()*this->k))*100 << "\% perfect neighbors" << std::endl;
+    finish = timer::now();
+    elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
+    std::cout << (total_accuracy/graph.get_size())*100 << "% | Time elasped: " << elapsed.count() << "ms" << std::endl;
 }
-
-
-void KNN::funA(unsigned int index) {
-    float dist;
-    struct point p1{ this->dim, nullptr };
-    struct point p2{ this->dim, nullptr };
-    struct minAVL<float, unsigned int>::info rem;
-    unsigned int nodeA, nodeB, sample = this->sample_size;
-
-    //Step 1: new neighbors X old (neighbors + reverse neighbors)
-    while(!graph[index].Uedge.is_empty()) {
-        if(sample%2 == 0)
-            rem = graph[index].Uedge.remove_min();
-        else rem = graph[index].Uedge.remove_max();
-        nodeA = rem.data;
-        if(sample == 0) {
-            graph[index].edge.insert(rem.key, rem.data);
-            continue;
-        } else sample--;
-
-        //Other neighbors
-        for(unsigned int i=0; i < graph[index].edge.get_size(); i++) {
-            nodeB = graph[index].edge[i];
-            p1.cord = graph[nodeA].cord;
-            p2.cord = graph[nodeB].cord;
-            dist = this->dist(p1, p2); //Maybe remember to not calculate again in neighbor if possible?
-            graph[nodeA].Cedge.insert(dist, nodeB); //<<<LOCK>>>
-            graph[nodeB].Cedge.insert(dist, nodeA); //<<<LOCK>>>
-        } graph[index].edge.insert(rem.key, rem.data);
-    
-        //Old reverse
-        sample = this->sample_size;
-        for(unsigned int i=0; i < graph[index].Redge.get_size(); i++) {
-            nodeB = graph[index].Redge[i];
-            if(nodeA == nodeB)
-                continue;
-            if(sample-- == 0)
-                break;
-    
-            p1.cord = graph[nodeA].cord;
-            p2.cord = graph[nodeB].cord;
-            dist = this->dist(p1, p2); //Maybe remember to not calculate again in neighbor if possible?
-            graph[nodeA].Cedge.insert(dist, nodeB); //<<<LOCK>>>
-            graph[nodeB].Cedge.insert(dist, nodeA); //<<<LOCK>>>
-        }
-    }
-
-    //Step 2: New reverse neighbors X all neighbors (new + old)
-    sample = sample_size;
-    for(unsigned int i=0; i < graph[index].URedge.get_size(); i++) {  
-        nodeA = graph[index].URedge[i];
-        graph[index].Redge.insert(nodeA); //Add to reverse neighbors
-        if(sample == 0)
-            continue;
-        else sample--;
-    
-        for(unsigned int j=0; j < graph[index].edge.get_size(); j++) {
-            nodeB = graph[index].edge[j];
-            if(nodeA == nodeB)
-                continue;
-
-            p1.cord = graph[nodeA].cord;
-            p2.cord = graph[nodeB].cord;
-            dist = this->dist(p1, p2);
-            graph[nodeA].Cedge.insert(dist, nodeB); //<<<LOCK>>>
-            graph[nodeB].Cedge.insert(dist, nodeA); //<<<LOCK>>>
-        }
-    } graph[index].URedge.clear();
-}
-
-
-//Thread B placeholder: evaluate candidates and update graph
-void KNN::funB(unsigned int index) {
-    //unsigned int local_change = 0; //For multithreading
-    struct minAVL<float, unsigned int>::info rem;
-    while(!graph[index].Cedge.is_empty()) {
-        if(graph[index].Cedge.min_key() < graph[index].edge.max_key()) { //Better key found
-            if(graph[index].edge.find(graph[index].Cedge.min_key())) {
-                graph[index].Cedge.remove_min();
-                continue;
-            } rem = graph[index].Cedge.remove_min();
-            graph[index].Uedge.insert(rem.key, rem.data);            
-            graph[rem.data].URedge.push(index); //Add untested reverse neighbor to new neighbor <<<LOCK>>>
-            rem = graph[index].edge.remove_max();
-            graph[rem.data].Redge.remove(index); //Remove reverse neighbor from old neighbor <<<LOCK>>>  
-            this->change += 1; //Multithreading: local_change += 1
-        } else graph[index].Cedge.clear();
-    }
-}
-
 
 //Remove all neighbors from every node
 void KNN::clear() {

@@ -1,13 +1,18 @@
+#include <getopt.h>
+
 #include "KNN.h"
 
 using namespace std;
 
 int main(int argc, char *argv[])
 { 
-    int opt, k = 3;
-    char metric[100] = { '\0' };
-    double sampling = 1, delta = 0.001;
-    while((opt = getopt(argc, argv, "k:s:m:d:")) != -1) {
+    //Default parameters
+    int opt, k = 20, threads = 4;
+    char *path, metric[100] = { '\0' };
+    double sampling = 0.8, delta = 0.001;
+
+    //Very basic cmdl arg parsing, without testing input
+    while((opt = getopt(argc, argv, "k:s:m:d:t:")) != -1) {
         switch(opt) {
             case 'k':
                 k = atoi(optarg);
@@ -27,23 +32,21 @@ int main(int argc, char *argv[])
                 if(delta > 1 || delta <= 0)
                 { fprintf(stderr, "Invalid delta\n"); exit(EXIT_FAILURE); }
                 break;
+            case 't':
+                threads = atoi(optarg);
+                if(threads <= 0)
+                { fprintf(stderr, "Invalid num of threads\n"); exit(EXIT_FAILURE); }
+                break;
             default:
                 fprintf(stderr, "Invalid CMD Line arguements\n");
                 exit(EXIT_FAILURE);
         }
-    }
-
-    char path[100] = { '\0' };
-    strcat(path, IMPORT_PATH); 
-    strcat(path, argv[optind]);
-
-    vector <struct point> v;
-    binary(path, 100, v);
-    KNN knn_problem(k, v, euclidean_distance, argv[optind]);
-    knn_problem.initialize(sampling, delta);
+    } path = argv[optind];
+    cout << "File: " << path << " | k: " << k << " | Delta: " << delta << " | Sampling rate: " << sampling*100 << "% | Threads: " << threads << endl;
+    
+    //Make and run the problem
+    KNN knn_problem(path, threads);
+    knn_problem.initialize(k, sampling, delta);
     knn_problem.solve();
-
-    for(unsigned int i=0; i < v.get_size(); i++)
-        delete [] v[i].cord;
     return 0;
 }

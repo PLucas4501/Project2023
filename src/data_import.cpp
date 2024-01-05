@@ -1,13 +1,13 @@
 #include "data_import.h"
 
 //Takes a dataset file with n elements of dimensions dim
-void binary(const char* dataset, const unsigned int dim, vector<struct point> &v) {
+void binary(const char* dataset, vector<struct point> &v) {
     FILE* file = fopen(dataset, "rb");
     if(!file)
         return;
 
-    unsigned int n;
     struct point element;
+    unsigned int n, dim = 100;
     if(fread(&n, sizeof(uint32_t), 1, file) != 1) {
         fclose(file);
         return;

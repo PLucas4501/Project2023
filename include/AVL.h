@@ -15,7 +15,7 @@
 
 template <typename K>
 class AVL {
-    ///---Attributes---///
+protected:
     //AVL node prototype
     struct node {
         K key;
@@ -27,9 +27,9 @@ class AVL {
         node(K key): key(key) {}
     };
 
+    ///---Attributes---///
     struct node *root{ nullptr };
     unsigned int cap{ 0 }, size{ 0 };
-
 
     ///---Internal functions---///
     //Returns a vector of all nodes inorder under tgt
@@ -43,19 +43,21 @@ class AVL {
     }
 
     //Traverses tree for steps < size
-    void traverse(struct node *tgt, unsigned int &steps, K &key) {
-        if(tgt->L && steps > 0) {
-            steps -= 1;
-            traverse(tgt->L, steps, key);
-        }
+    struct node *traverse(struct node *tgt, unsigned int &steps) {
+        struct node *ret = nullptr;
+        if(tgt->L)
+            if((ret = traverse(tgt->L, steps)))
+                return ret;
 
-        if(steps == 0)
-            key = tgt->key;
+        if(steps > 0)
+            steps--;
+        else return tgt;
 
-        if(tgt->R && steps > 0){ 
-            steps -= 1;
-            traverse(tgt->R, steps, key);
-        }
+        if(tgt->R)
+            if((ret = traverse(tgt->R, steps)))
+                return ret;
+
+        return ret;
     }
 
     //Internal node comparison method
@@ -123,8 +125,13 @@ class AVL {
 
     //Finds and returns given node
     struct node *find(struct node *tgt) {
+        if(this->size == 0)
+            return nullptr;
+
         short int result;
         struct node *found = this->root;
+        if(found == nullptr)
+            std::cout << "what the fck" << std::endl;
         while((result = this->compare(found, tgt)) != 0) {
             found = (result == 1) ? found->R : found->L;
             if(!found)
@@ -375,23 +382,18 @@ public:
     void print() {
         vector<struct node *> pv;
         this->all_nodes(this->root, pv);
-
-        //std::cout << "[";
         if(!pv.is_empty())
             std::cout << pv[0]->key;
         
         for(unsigned int i=1; i < pv.get_size(); i++)
             std::cout << " " << pv[i]->key;
-        //std::cout << "]" << std::endl;
+        std::cout << std::endl;
     }
 
     K operator[](unsigned int index) { 
         if(index >= this->get_size())
             throw std::out_of_range("AVL index out of range");
-        
-        K key;
-        traverse(this->root, index, key);
-        return key;
+        return traverse(this->root, index)->key;
     }
 
     ///---Accessors---///
@@ -457,6 +459,23 @@ public:
     bool remove_min()
     { return this->remove(this->min_node()); }
 
+    K remove_index(unsigned int index) {
+        if(index >= this->get_size())
+            throw std::out_of_range("AVL index out of range");
+        struct node *tgt = traverse(this->root, index);
+        K ret = tgt->key;
+        this->remove(tgt);
+        return ret;   
+    }
+
+    K remove_root() {
+        if(size == 0)
+            return (K) 0;
+        K ret = this->root->key;
+        this->remove(this->root);
+        return ret;
+    }
+
     void set_cap(unsigned int new_cap)
     { this->cap = new_cap; }
 
@@ -468,8 +487,8 @@ public:
 };
 
 
-///------------------------------------------------------///
-///------------------------------------------------------///
+///------------------------------------------------------------------------------------------------------------///
+///------------------------------------------------------------------------------------------------------------///
 //Keeps minimum key-data pairs
 template <typename K, typename D>
 class minAVL {
@@ -502,22 +521,25 @@ protected:
         all_nodes(tgt->R, v);       
     }
 
-    void traverse(struct node *tgt, unsigned int &steps, D &data) {
+    //Traverses tree for steps < size
+    struct node *traverse(struct node *tgt, unsigned int &steps) {
+        struct node *ret = nullptr;
         if(tgt->L)
-            traverse(tgt->L, steps, data);
+            if((ret = traverse(tgt->L, steps)))
+                return ret;
 
-        if(steps > 0) {
-            if(--steps == 0) {
-                data = tgt->data;
-                return;
-            }
-        } else return;
+        if(steps > 0)
+            steps--;
+        else return tgt;
 
         if(tgt->R)
-            traverse(tgt->R, steps, data);
+            if((ret = traverse(tgt->R, steps)))
+                return ret;
+
+        return ret;
     }
 
-    //Internal node comparison method
+    //Internal node comparison method (for keys)
     short int compare(struct node *A, struct node *B) {
         if(A->key < B->key)
             return 1;
@@ -526,7 +548,7 @@ protected:
         else return 0;
     }
 
-    //Internal node comparison method
+    //Internal node comparison method (for data)
     short int data_compare(struct node *A, struct node *B) {
         if(A->data < B->data)
             return 1;
@@ -852,56 +874,50 @@ protected:
     }
 
 public:
-    minAVL(unsigned int cap = 0): cap(cap) {}
-
     ~minAVL() { this->clear(); }
 
     ///---Public Interface---///
-    struct info {
-        D data;
-        K key;
-        void operator=(struct info other) {
+    struct payload {
+        K key{ 0 };
+        D data{ 0 };
+        void operator=(struct payload other) {
             data = other.data;
             key = other.key;
         }
+
+        payload() {}
+        payload(K key, D data): key(key), data(data) {}
     };
 
     void print() {
         vector<struct node *> pv;
         all_nodes(this->root, pv);
-
-        //std::cout << "[";
         if(!pv.is_empty())
             std::cout << pv[0]->data;
         
         for(unsigned int i=1; i < pv.get_size(); i++)
             std::cout << " " << pv[i]->data;
-        //std::cout << "]" << std::endl;
         std::cout << std::endl;
     }
 
     void printX() {
         vector<struct node *> pv;
         all_nodes(this->root, pv);
-
-        //std::cout << "[";
         if(!pv.is_empty())
             std::cout << std::hex << pv[0]->data;
         
         for(unsigned int i=1; i < pv.get_size(); i++)
             std::cout << " " << std::hex << pv[i]->data;
-        //std::cout << "]" << std::endl;
         std::cout << std::endl;
     }
 
 
-    D operator[](unsigned int index) { 
+    payload operator[](unsigned int index) { 
         if(index >= this->get_size())
             throw std::out_of_range("AVL index out of range");
-        
-        D data;
-        traverse(this->root, ++index, data);
-        return data;
+        struct node *tgt = traverse(this->root, index);
+        struct payload ret{ tgt->key, tgt->data };
+        return ret;
     }
 
     ///---Accessors---///
@@ -924,8 +940,11 @@ public:
     K const min_key() 
     { return this->min_node()->key; }
 
-    K const max_key()
-    { return this->max_node()->key; }
+    K const max_key() { 
+        if(this->size == 0)
+            return (K) 0;
+        return this->max_node()->key;
+    }
 
     D const min() 
     { return this->min_node()->data; }
@@ -937,13 +956,13 @@ public:
         //Max size, see if replacement is possible
         struct node *tgt;
         struct node *new_node = new struct node(key, data);
-        if((tgt = this->find(new_node))) {
+        if((tgt = this->find(new_node)) != nullptr) {
             if(data_compare(tgt, new_node) > -1) {
                 delete new_node;
                 return false;
             } else this->remove(tgt);
         } else if(cap > 0 && size == cap) {
-            if(compare(max_node(), new_node) < 1) {
+            if(compare(max_node(), new_node) == 1) {
                 delete new_node;
                 return false;
             } else remove_max();
@@ -968,25 +987,41 @@ public:
     }
 
     //Removes node with given key (& data), if found
-    bool remove(K key) {
-        struct node *tgt = new struct node(key);
+    struct payload remove(K key) {
+        struct payload ret(0, 0);
+        struct node *tgt = new struct node(key, (D) 0);
         struct node *del = this->find(tgt);
         delete tgt;
-        return this->remove(del);
+        if(del == nullptr)
+            return ret;
+
+        ret.key = del->key;
+        ret.data = del->data;
+        this->remove(del);
+        return ret;
     }
 
-    struct info remove_max() {
+    struct payload remove_max() {
         struct node *tgt = this->max_node();
-        struct info ret{ tgt->data, tgt->key };
+        struct payload ret(tgt->key, tgt->data);
         this->remove(tgt); 
         return ret;    
     }
 
-    struct info remove_min() {
+    struct payload remove_min() {
         struct node *tgt = this->min_node();
-        struct info ret{ tgt->data, tgt->key };
+        struct payload ret(tgt->key, tgt->data);
         this->remove(tgt); 
         return ret;    
+    }
+
+    struct payload remove_index(unsigned int index) {
+        if(index >= this->get_size())
+            throw std::out_of_range("AVL index out of range");
+        struct node *tgt = traverse(this->root, index);
+        struct payload ret(tgt->key, tgt->data);
+        this->remove(tgt);
+        return ret;          
     }
 
     void set_cap(unsigned int new_cap)
@@ -999,49 +1034,114 @@ public:
     }
 };
 
-
-
-template <typename K, typename D>
-class minAVL2 : public minAVL<K, D> {
+template <typename K>
+class RN_AVL {
 public:
-    bool insert(K key, D data) {
-        //Max size, see if replacement is possible
-        struct minAVL<K,D>::node *tgt;
-        struct minAVL<K,D>::node *new_node = new struct minAVL<K,D>::node(key, data);
-        if(minAVL<K,D>::cap > 0 && minAVL<K,D>::size == minAVL<K,D>::cap) {
-            if(minAVL<K,D>::compare(minAVL<K,D>::max_node(), new_node) < 1) {
-                delete new_node;
-                return false;
-            } else minAVL<K,D>::remove_max();
-        }
-    
-        tgt = minAVL<K,D>::root;
-        new_node->parent = nullptr;
-        while(tgt) {
-            new_node->parent = tgt;
-            switch(minAVL<K,D>::compare(tgt, new_node)) {
-                case 1:
-                    tgt = tgt->R;
-                    break;
-                case -1:
-                    tgt = tgt->L;
-                    break;
-                default: //Key Duplicate
-                    switch(minAVL<K,D>::data_compare(tgt, new_node)) {
-                        case 1:
-                            tgt = tgt->R;
-                            break;
-                        case -1:
-                            tgt = tgt->L;
-                            break;
-                        default:
-                            delete new_node;
-                        return false;
-                    }
-            }
-        } return minAVL<K,D>::insert(new_node);
+    AVL<K> Old;
+    AVL<K> New;
+
+    K operator[](unsigned int index) { 
+        if(index < Old.get_size())
+            return Old[index];
+        else if(index - Old.get_size() < New.get_size())
+            return New[index - Old.get_size()];
+        else throw std::out_of_range("AVL index out of range");
     }
 
+    unsigned int const get_size() 
+    { return Old.get_size() + New.get_size(); }
+
+    K const min() {
+        K keyA = Old.min_key(), keyB = New.min_key();
+        return keyA < keyB ? Old.max() : New.max();
+    }
+
+    K const max() {
+        K keyA = Old.max_key(), keyB = New.max_key();
+        return keyA > keyB ? Old.max() : New.max();
+    }
+
+    K remove(K key) {
+        if(!New.find(key))
+            return Old.remove(key);
+        else return New.remove(key);
+    }
+
+    K remove_max() {
+        K keyA = Old.max_key(), keyB = New.max_key();
+        return keyA > keyB ? Old.remove_max() : New.remove_max();
+    }
+
+    bool find(K key) {
+        if(!New.find(key))
+            return Old.find(key);
+        else return true;
+    }
+
+    void clear() {
+        Old.clear();
+        New.clear();
+    }
+};
+
+template <typename K, typename D>
+class N_AVL {
+public:
+    minAVL<K, D> Old;
+    minAVL<K, D> New;
+
+    D operator[](unsigned int index) { 
+        if(index < Old.get_size())
+            return Old[index];
+        else if(index - Old.get_size() < New.get_size())
+            return New[index - Old.get_size()];
+        else throw std::out_of_range("AVL index out of range");
+    }
+
+    unsigned int const get_size() 
+    { return Old.get_size() + New.get_size(); }
+
+    K const min_key() {
+        K keyA = Old.min_key(), keyB = New.min_key();
+        return keyA < keyB ? keyA : keyB;
+    }
+
+    K const max_key() {
+        K keyA = Old.max_key(), keyB = New.max_key();
+        return keyA > keyB ? keyA : keyB;
+    }
+
+    D const min() {
+        K keyA = Old.min_key(), keyB = New.min_key();
+        return keyA < keyB ? Old.max() : New.max();
+    }
+
+    D const max() {
+        K keyA = Old.max_key(), keyB = New.max_key();
+        return keyA > keyB ? Old.max() : New.max();
+    }
+
+    struct minAVL<K, D>::payload remove(K key) {
+        if(!New.find(key))
+            return Old.remove(key);
+        else return New.remove(key);
+    }
+
+    struct minAVL<K, D>::payload remove_max() {
+        K keyA = Old.max_key(), keyB = New.max_key();
+        return keyA > keyB ? Old.remove_max() : New.remove_max();
+    }
+
+    bool find(K key) {
+        if(!New.find(key))
+            return Old.find(key);
+        else return true;
+    }
+
+    void clear() {
+        Old.clear();
+        New.clear();
+    }
 };
 
 #endif

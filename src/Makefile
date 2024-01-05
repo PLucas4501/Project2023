@@ -1,9 +1,9 @@
 INCLUDE = ../include
 CC = g++
-CFLAGS = -Wall -I$(INCLUDE)
+CFLAGS = -Wall -fopenmp -I$(INCLUDE)
 OBJ = distance.o data_import.o
 
-all: KNN GraphSolve clean
+all: KNN GraphSolve
 
 KNN: main.o KNN.o $(OBJ)
 	$(CC) $(CFLAGS) main.o KNN.o $(OBJ) -o KNN
@@ -29,7 +29,7 @@ data_import.o: data_import.cpp
 	$(CC) $(CFLAGS) -c data_import.cpp -o data_import.o
 
 clean:
-	rm -f *.o
+	rm -f *.o KNN GraphSolve
 
 run: KNN
 	./KNN

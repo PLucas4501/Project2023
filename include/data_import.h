@@ -3,12 +3,13 @@
 
 #include <iostream>
 #include <cstdio>
+
 #include "vector.h"
 #include "point.h"
 
-#define IMPORT_PATH "../datasets/"
-#define EXPORT_PATH "../solved/"
+#define IMPORT_PATH "datasets/"
+#define EXPORT_PATH "solved/"
 
-void binary(const char *, const unsigned int, vector<struct point>&);
+void binary(const char *, vector<struct point>&);
 
 #endif
