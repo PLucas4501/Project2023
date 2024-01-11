@@ -1,16 +1,19 @@
 #include "data_import.h"
 
 //Takes a dataset file with n elements of dimensions dim
-void binary(const char* dataset, vector<struct point> &v) {
-    FILE* file = fopen(dataset, "rb");
-    if(!file)
-        return;
+int binary(const char* dataset, vector<struct point> &v) {
+    FILE* file;
+    if((file = fopen(dataset, "r")) == nullptr) {
+        std::cerr << "binary failed(): could not open dataset file" << std::endl;
+        return -1;
+    }
 
     struct point element;
     unsigned int n, dim = 100;
-    if(fread(&n, sizeof(uint32_t), 1, file) != 1) {
+    if(fread(&n, sizeof(unsigned int), 1, file) != 1) {
+        std::cerr << "binary failed(): could not read dataset size" << std::endl;
         fclose(file);
-        return;
+        return -1;
     }
 
     element.dim = dim;
@@ -21,9 +24,9 @@ void binary(const char* dataset, vector<struct point> &v) {
                 std::cerr << "error reading coordinates" << std::endl;
                 delete [] element.cord;
                 fclose(file);
-                return;
+                return-1;
             }
         } v.push(element);
     } fclose(file);
-    return;
+    return 0;
 }  

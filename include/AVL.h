@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <bitset>
+
 #include "vector.h"
 
 //A templated AVL tree data structure with basic operations.
@@ -900,17 +902,16 @@ public:
         std::cout << std::endl;
     }
 
-    void printX() {
+    void full_print() {
         vector<struct node *> pv;
         all_nodes(this->root, pv);
         if(!pv.is_empty())
-            std::cout << std::hex << pv[0]->data;
+            std::cout << pv[0]->data << "/" << pv[0]->key;
         
         for(unsigned int i=1; i < pv.get_size(); i++)
-            std::cout << " " << std::hex << pv[i]->data;
-        std::cout << std::endl;
+            std::cout << " " << pv[i]->data << "/" << pv[i]->key;
+        std::cout << std::endl;  
     }
-
 
     payload operator[](unsigned int index) { 
         if(index >= this->get_size())
@@ -930,8 +931,16 @@ public:
     bool const is_empty()
     { return this->get_size() == 0; }
 
-    bool const find(K key) {
+    bool const find_key(K key) {
         struct node *tgt = new node(key, (D) 0);
+        struct node *ret = this->find(tgt);
+        delete tgt;
+        return ret != nullptr;
+    }
+
+    //Find first instance of data (unique in our graph)
+    bool const find(D data) {
+        struct node *tgt = new node((K) 0, data);
         struct node *ret = this->find(tgt);
         delete tgt;
         return ret != nullptr;

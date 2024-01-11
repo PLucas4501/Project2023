@@ -1,35 +1,33 @@
 INCLUDE = ../include
+OBJECT = object/
 CC = g++
 CFLAGS = -Wall -fopenmp -I$(INCLUDE)
-OBJ = distance.o data_import.o
+OBJ =  $(OBJECT)main.o $(OBJECT)KNN.o $(OBJECT)data_import.o
 
-all: KNN GraphSolve
+all: KNN
 
-KNN: main.o KNN.o $(OBJ)
-	$(CC) $(CFLAGS) main.o KNN.o $(OBJ) -o KNN
+KNN: main.o KNN.o data_import.o
+	$(CC) $(CFLAGS) $(OBJ) -o $@
 
-GraphSolve: GraphSolve.o $(OBJ)
-	$(CC) $(CFLAGS) GraphSolve.o $(OBJ) -o GraphSolve
+#GraphSolve: GraphSolve.o $(OBJ)
+#	$(CC) $(CFLAGS) GraphSolve.o $(OBJ) -o $@
 
 
 
-GraphSolve.o: GraphSolve.cpp
-	$(CC) $(CFLAGS) -c GraphSolve.cpp -o GraphSolve.o
+#GraphSolve.o: GraphSolve.cpp
+#	$(CC) $(CFLAGS) -c $< -o $(OBJECT)$@
  
 main.o: main.cpp
-	$(CC) $(CFLAGS) -c main.cpp -o main.o
+	$(CC) $(CFLAGS) -c $< -o $(OBJECT)$@
 
 KNN.o: KNN.cpp
-	$(CC) $(CFLAGS) -c KNN.cpp -o KNN.o
-
-distance.o: distance.cpp
-	$(CC) $(CFLAGS) -c distance.cpp -o distance.o
+	$(CC) $(CFLAGS) -c $< -o $(OBJECT)$@
 
 data_import.o: data_import.cpp
-	$(CC) $(CFLAGS) -c data_import.cpp -o data_import.o
+	$(CC) $(CFLAGS) -c $< -o $(OBJECT)$@
 
 clean:
-	rm -f *.o KNN GraphSolve
+	rm -f object/*.o KNN GraphSolve
 
 run: KNN
 	./KNN

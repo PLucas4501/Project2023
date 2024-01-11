@@ -46,12 +46,11 @@ public:
     }
 
     void print() {
-        std::cout << "[";
         if(!is_empty())
             std::cout << this->array[0];
         for(unsigned int i=1; i < this->size; i++)
-            std::cout << ", " << this->array[i];
-        std::cout << "]" << std::endl;
+            std::cout << " " << this->array[i];
+        std::cout << std::endl;
     }
 
     unsigned int const get_size()

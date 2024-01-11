@@ -48,5 +48,6 @@ int main(int argc, char *argv[])
     KNN knn_problem(path, threads);
     knn_problem.initialize(k, sampling, delta);
     knn_problem.solve();
+    knn_problem.accuracy();
     return 0;
 }

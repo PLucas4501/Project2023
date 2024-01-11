@@ -3,6 +3,7 @@
 
 #include <omp.h>
 #include <getopt.h>
+#include <unistd.h>
 
 #include "data_import.h"
 #include "distance.h"
@@ -15,7 +16,7 @@ using namespace std;
 int main(int argc, char *argv[]) {
     int opt;
     unsigned int k = 0, threads = 8;
-    char *path, in_path[100] = { '\0' }, out_path[100] = { '\0' };
+    char *path, in_path[100] = { '\0' }, out_path[110] = { '\0' };
     while((opt = getopt(argc, argv, "k:t:")) != -1) {
         switch(opt) {
             case 'k':
@@ -37,38 +38,41 @@ int main(int argc, char *argv[]) {
     
 
 
-    //Create graph from dataset
+    //Create graph from imported dataset
     vector<struct point> graph;
-    strcat(in_path, IMPORT_PATH);
-    strcat(in_path, path);
-    binary(in_path, graph);
+    if(sprintf(in_path, "%s%s", IMPORT_PATH, path) < 0)
+    { cerr << "Error importing dataset " << out_path << endl; exit(EXIT_FAILURE); }
+
+    if(binary(in_path, graph) < 0)
+    { cerr << "Error importing dataset " << out_path << endl; exit(EXIT_FAILURE); }
 
     //Create output file
     unsigned int i = 0, j;
-    strcat(out_path, EXPORT_PATH);
-    while(path[i] != '\0') 
-        if(path[i++] == '.')
-            break;
-    strncat(out_path, path, i - 1);
+    if(sprintf(out_path, "%s%s.solved", EXPORT_PATH, path) < 0)
+    { cerr << "Error creating file " << out_path << endl; exit(EXIT_FAILURE); }
 
-    if(freopen(out_path, "a+", stdout) < 0) 
+    FILE *out_file;
+    if((out_file = fopen(out_path, "w")) < 0) 
     { cerr << "Error creating file " << out_path << endl; exit(EXIT_FAILURE); } 
-    cout << graph.get_size() << endl; //First line of file is # of nodes
 
     //Configure data structures
     omp_lock_t lock[graph.get_size()];
-    minAVL<float, unsigned int> neighbors[graph.get_size()];
-    for(i=0; i < graph.get_size(); i++) {
+    unsigned int graph_size = graph.get_size();
+    minAVL<float, unsigned int> neighbors[graph_size];
+    for(i=0; i < graph_size; i++) {
         neighbors[i].set_cap(k);
         omp_init_lock(&(lock[i]));
     }
-        
+
+    //Write size of dataset first
+    if(fwrite(&graph_size, sizeof(unsigned int), 1, out_file) < 0)
+    { cerr << "Error writing to file" << endl; exit(EXIT_FAILURE); }        
 
     //Find neighbors
     float dist;
     #pragma omp parallel for private(i, j, dist) num_threads(threads)
-    for(i=0; i < graph.get_size(); i++) {
-        for(j = i+1; j < graph.get_size(); j++) {
+    for(i=0; i < graph_size; i++) {
+        for(j = i+1; j < graph_size; j++) {
             dist = euclidean_distance(graph[i], graph[j]);
             omp_set_lock(&(lock[i]));
             neighbors[i].insert(dist, j);
@@ -80,9 +84,17 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    for(i=0; i<graph.get_size(); i++) {
-        neighbors[i].print();
+    //Output graph to file
+    for(i=0; i < graph_size; i++) {
+        unsigned int k_neighbors[neighbors[i].get_size()];
+        for(j=0; j < neighbors[i].get_size(); j++)
+            k_neighbors[j] = neighbors[i][j].data;
+
+        if(fwrite(k_neighbors, sizeof(unsigned int), neighbors[i].get_size(), out_file) < 0)
+        { cerr << "Error writing to file" << endl; exit(EXIT_FAILURE); }
+
         neighbors[i].clear();
         omp_destroy_lock(&(lock[i]));
-    } return 0;
+    } fclose(out_file);
+    return 0;
 }

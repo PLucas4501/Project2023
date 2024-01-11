@@ -10,6 +10,6 @@
 #define IMPORT_PATH "datasets/"
 #define EXPORT_PATH "solved/"
 
-void binary(const char *, vector<struct point>&);
+int binary(const char *, vector<struct point>&);
 
 #endif
