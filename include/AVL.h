@@ -1099,7 +1099,7 @@ public:
     minAVL<K, D> Old;
     minAVL<K, D> New;
 
-    D operator[](unsigned int index) { 
+    struct minAVL<K, D>::payload operator[](unsigned int index) { 
         if(index < Old.get_size())
             return Old[index];
         else if(index - Old.get_size() < New.get_size())
@@ -1141,10 +1141,16 @@ public:
         return keyA > keyB ? Old.remove_max() : New.remove_max();
     }
 
-    bool find(K key) {
-        if(!New.find(key))
-            return Old.find(key);
-        else return true;
+    bool find(D data) {
+        if(New.find(data))
+            return true;
+        else return Old.find(data);
+    }
+
+    bool find_key(K key) {
+        if(New.find_key(key))
+            return true;
+        else return Old.find_key(key);
     }
 
     void clear() {

@@ -3,7 +3,8 @@ all: tgt
 tgt:
 	cd src/ && $(MAKE)
 	cp src/KNN .
-	rm src/KNN
+	cp src/GraphSolve .
+	rm src/KNN src/GraphSolve
 
 clean:
 	$(MAKE) -C src clean

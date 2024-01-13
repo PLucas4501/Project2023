@@ -2,20 +2,21 @@ INCLUDE = ../include
 OBJECT = object/
 CC = g++
 CFLAGS = -Wall -fopenmp -I$(INCLUDE)
-OBJ =  $(OBJECT)main.o $(OBJECT)KNN.o $(OBJECT)data_import.o
+OBJA =  $(OBJECT)main.o $(OBJECT)KNN.o $(OBJECT)data_import.o
+OBJB = $(OBJECT)GraphSolve.o $(OBJECT)KNN.o $(OBJECT)data_import.o
 
-all: KNN
+all: KNN GraphSolve
 
 KNN: main.o KNN.o data_import.o
-	$(CC) $(CFLAGS) $(OBJ) -o $@
+	$(CC) $(CFLAGS) $(OBJA) -o $@
 
-#GraphSolve: GraphSolve.o $(OBJ)
-#	$(CC) $(CFLAGS) GraphSolve.o $(OBJ) -o $@
+GraphSolve: GraphSolve.o KNN.o data_import.o
+	$(CC) $(CFLAGS) $(OBJB) -o $@
 
 
 
-#GraphSolve.o: GraphSolve.cpp
-#	$(CC) $(CFLAGS) -c $< -o $(OBJECT)$@
+GraphSolve.o: GraphSolve.cpp
+	$(CC) $(CFLAGS) -c $< -o $(OBJECT)$@
  
 main.o: main.cpp
 	$(CC) $(CFLAGS) -c $< -o $(OBJECT)$@

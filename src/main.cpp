@@ -46,8 +46,8 @@ int main(int argc, char *argv[])
     
     //Make and run the problem
     KNN knn_problem(path, threads);
-    knn_problem.initialize(k, sampling, delta);
-    knn_problem.solve();
-    knn_problem.accuracy();
+    knn_problem.set_metric(NORM);
+    knn_problem.solve(k, sampling, delta);
+    knn_problem.accuracy(k, path);
     return 0;
 }

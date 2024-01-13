@@ -4,13 +4,19 @@
 #include <omp.h> 
 #include <cstring>
 
-//A templated class defining the KNN (k-nearest neighbors) problem.
-#include "distance.h"
 #include "point.h"
 #include "vector.h"
 #include "AVL.h"
 #include "data_import.h"
 
+//Distance function codes
+#define DEFAULT 0
+#define NORM 1
+#define EUCLID 2
+#define MANHATTAN 3
+
+
+//A class defining the KNN (k-nearest neighbors) problem.
 class KNN {
     //The data points become nodes inside our graph.
     //We define neighbors and reverse neighbors seperately,
@@ -27,37 +33,35 @@ class KNN {
     //The graph itself + dataset path name
     vector<struct node> graph;
     char dataset[100] = { '\0' }; 
-    minAVL<float, unsigned int> *true_graph;
 
-    //Additional parameters (including K)
-    double acc{ 0 };
-    bool initialized{ false }; 
-    unsigned int k, dim, threads, sample_size, threshold, change;
-
-    float (KNN::*distf)(unsigned int, unsigned int); //Distance metric used, default is euclidian
+    //Additional parameters
+    unsigned int dim, threads;
+    float (KNN::*distf)(unsigned int, unsigned int){ nullptr }; //Distance metric
     float calc_dist(unsigned int A, unsigned int B)
     { return (this->*distf)(A, B); }
 
     //Internal functions
-    void krand_neighbors(unsigned int);
-    void random_projection(unsigned int);
+    void krand_neighbors(unsigned int, unsigned int);
+    void random_projection();
     void add_candidates(unsigned int, unsigned int);
     
 public:
-    //Constructors
+    //Constructors & destructors
     KNN(vector<struct point>&, unsigned int);
-    KNN(char *path, unsigned int);
+    KNN(char *, unsigned int);
     ~KNN();
 
-    //Accessors
-    void print_graph();
-
-    //Mutators
+    //Public interface
+    unsigned int const get_size()
+    { return graph.get_size(); }
+    
+    bool export_graph(char *, unsigned int);
+    void print(unsigned int);
     void add_node(struct point);
-    void initialize(unsigned int, double, double);
-    void accuracy();
-    bool true_solve();
-    bool solve();
+    void set_metric(unsigned int);
+    bool solve(unsigned int, double, double);
+    void true_solve(unsigned int);
+    bool accuracy(unsigned int, char *);
     void clear();
 
     //Distance calculators

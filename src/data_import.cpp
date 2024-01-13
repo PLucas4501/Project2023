@@ -19,13 +19,11 @@ int binary(const char* dataset, vector<struct point> &v) {
     element.dim = dim;
     for(unsigned int i=0; i < n; i++) {
         element.cord = new float[dim];
-        for(unsigned int j=0; j < dim; j++) {
-            if(fread(&(element.cord[j]), sizeof(float), 1, file) != 1) {
-                std::cerr << "error reading coordinates" << std::endl;
-                delete [] element.cord;
-                fclose(file);
-                return-1;
-            }
+        if(fread(element.cord, sizeof(float), dim, file) < dim) {
+            std::cerr << "error reading coordinates" << std::endl;
+            delete [] element.cord;
+            fclose(file);
+            return-1;
         } v.push(element);
     } fclose(file);
     return 0;
