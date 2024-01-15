@@ -18,8 +18,7 @@ class vector
 public:
     //Constructor can take an array of data + size (and hope size is right)
     vector(T data[] = nullptr, unsigned int size = 0) {
-        if(data != nullptr && size > 0)
-        {
+        if(data != nullptr && size > 0) {
             this->cap = this->size = size;
             this->array = new T[size];
             for(unsigned int i=0; i < size; i++)
@@ -31,6 +30,15 @@ public:
     vector(unsigned int size) {
         this->cap = size; 
         this->array = new T[size]; 
+    }
+
+    //Copy constructor
+    vector(vector<T> &other) {
+        this->size = other.size;
+        this->cap = other.cap;
+        this->array = new T[cap];
+        for(unsigned int i=0; i < size; i++)
+            this->array[i] = other.array[i];
     }
 
     ~vector() {

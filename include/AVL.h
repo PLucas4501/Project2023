@@ -1060,6 +1060,9 @@ public:
     unsigned int const get_size() 
     { return Old.get_size() + New.get_size(); }
 
+    bool const is_empty()
+    { return Old.is_empty() && New.is_empty(); }
+
     K const min() {
         K keyA = Old.min_key(), keyB = New.min_key();
         return keyA < keyB ? Old.max() : New.max();
@@ -1077,7 +1080,15 @@ public:
     }
 
     K remove_max() {
-        K keyA = Old.max_key(), keyB = New.max_key();
+        K keyA, keyB;
+        if(!(Old.is_empty()))
+            keyA = Old.max_key();
+        else keyA = 0;
+
+        if(!(New.is_empty()))
+            keyB = New.max_key();
+        else return Old.remove_max();
+    
         return keyA > keyB ? Old.remove_max() : New.remove_max();
     }
 

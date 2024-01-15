@@ -19,7 +19,7 @@ jobs:
 
       - name: Build and run unit tests
         run: |
-          g++ -o tests Tests.cpp -I/include
+          make tests
           
           # Run the unit tests
-          ./tests
+          ./TESTS

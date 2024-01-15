@@ -1,10 +1,13 @@
-all: tgt
+all: KNN tests
 
-tgt:
+KNN: KNN GraphSolve
 	cd src/ && $(MAKE)
 	cp src/KNN .
 	cp src/GraphSolve .
 	rm src/KNN src/GraphSolve
+
+tests:
+	cd tests/ && $(MAKE)
 
 clean:
 	$(MAKE) -C src clean

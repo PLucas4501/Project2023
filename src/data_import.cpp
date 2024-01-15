@@ -23,7 +23,7 @@ int binary(const char* dataset, vector<struct point> &v) {
             std::cerr << "error reading coordinates" << std::endl;
             delete [] element.cord;
             fclose(file);
-            return-1;
+            return -1;
         } v.push(element);
     } fclose(file);
     return 0;
