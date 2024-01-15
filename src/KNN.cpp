@@ -360,8 +360,9 @@ bool KNN::solve(unsigned int k, double sampling, bool fast_sampling, double delt
         graph[i].Cedge.set_cap(k);
         graph[i].edge.Old.set_cap(k);
         graph[i].edge.New.set_cap(k);
-        //this->krand_neighbors(i, k);
-        range.push(i);
+        if(trees > 0)
+            range.push(i);
+        else this->krand_neighbors(i, k);
     }
 
     //Create RPT forest
@@ -447,13 +448,14 @@ bool KNN::solve(unsigned int k, double sampling, bool fast_sampling, double delt
     start = timer::now();
 
     RN_AVL<unsigned int> sampledNR;
+    double RegionA = 0, RegionB = 0;
     minAVL<float, unsigned int> sampledN;
     unsigned int change, tgt_node, iterations = 0;
     struct minAVL<float, unsigned int>::payload rem;
     double sample_size = sampling * k, threshold = delta * k * graph.get_size();
     do {
         timer::time_point regA_S = timer::now();
-        #pragma omp parallel for private(i, j, m, tgt_node, rem, sampledN, sampledNR)
+        #pragma omp parallel for num_threads(threads) private(i, j, m, tgt_node, rem, sampledN, sampledNR)
         for(i=0; i < graph.get_size(); i++) {
             //Sample neighbors
             for(j=0; j < sample_size; j++) {
@@ -521,12 +523,13 @@ bool KNN::solve(unsigned int k, double sampling, bool fast_sampling, double delt
             sampledNR.Old.clear();
         } timer::time_point regA_F = timer::now();
         auto elapsedA = std::chrono::duration_cast<std::chrono::milliseconds>(regA_F - regA_S);
+        RegionA += elapsedA.count();
         //std::cout << "Region A: " << elapsedA.count() << "ms" << std::endl;
 
         //Parallel region B
         change = 0;
         timer::time_point regB_S = timer::now();
-        #pragma omp parallel for private(i, tgt_node, rem) reduction(+:change)
+        #pragma omp parallel for num_threads(threads) private(i, tgt_node, rem) reduction(+:change)
         for(i=0; i < graph.get_size(); i++) {
             while(!graph[i].Cedge.is_empty()) {
                 rem = graph[i].Cedge.remove_min();
@@ -551,6 +554,7 @@ bool KNN::solve(unsigned int k, double sampling, bool fast_sampling, double delt
             } graph[i].Cedge.clear();
         } timer::time_point regB_F = timer::now();
         auto elapsedB = std::chrono::duration_cast<std::chrono::milliseconds>(regB_F - regB_S);
+        RegionB += elapsedB.count();
         //std::cout << "Region B: " << elapsedB.count() << "ms" << std::endl;
         iterations++;
     } while(change > threshold);

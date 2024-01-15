@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
                 break;
             case 'r':
                 trees = atoi(optarg);
-                if(trees <= 0)
+                if(trees < 0)
                 { fprintf(stderr, "Invalid num of trees\n"); exit(EXIT_FAILURE); }
                 break;
             case 'l':
@@ -57,9 +57,6 @@ int main(int argc, char *argv[])
                 exit(EXIT_FAILURE);
         }
     } path = argv[optind];
-    if(trees == 0)
-    { trees = 12; }
-
     if(leaf_size == 0)
     { leaf_size = k/5; }
 
