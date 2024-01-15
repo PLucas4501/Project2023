@@ -1,6 +1,8 @@
-all: KNN tests
+.PHONY: KNN tests
 
-KNN: KNN GraphSolve
+all: KNN
+
+KNN:
 	cd src/ && $(MAKE)
 	cp src/KNN .
 	cp src/GraphSolve .
